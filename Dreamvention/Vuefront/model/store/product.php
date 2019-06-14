@@ -202,6 +202,33 @@ class ModelStoreProduct extends Model
 
         $sql = "SELECT entity_id as product_id, entity_id as sort_order, sku as model, created_at as date_added FROM `".$tableName."`";
 
+        $implode = array();
+
+        if (!empty($data['filter_ids'])) {
+            $implode[] = "entity_id in ('".implode("' , '", $data['filter_ids'])."')";
+        }
+    
+        if (!empty($data['filter_category_id'])) {
+        //     $implode[] = "'".(int)$data['filter_category_id']."' IN (SELECT t.`term_id` FROM wp_term_relationships rel
+        //     LEFT JOIN wp_term_taxonomy tax ON tax.term_taxonomy_id = rel.term_taxonomy_id
+        //     LEFT JOIN wp_terms t ON t.term_id = tax.term_id
+        //     WHERE rel.`object_id` = p.ID AND tax.`taxonomy` = 'product_cat')";
+        }
+    
+        if (!empty($data['filter_special'])) {
+        //     $implode[] = "(ps.meta_value IS NOT NULL AND (ps.meta_value + 0) > 0)";
+        }
+    
+        // if (!empty($data['filter_search'])) {
+        //     $implode[] = "(p.post_title LIKE '%".$data['filter_search']."%' 
+        //     OR p.post_content LIKE '%".$data['filter_search']."%'
+        //     OR ps2.meta_value LIKE '%".$data['filter_search']."%')";
+        // }
+
+		if ( count( $implode ) > 0 ) {
+			$sql .= ' WHERE ' . implode( ' AND ', $implode );
+		}
+
         $sort_data = array(
             'product_id',
             'price',
@@ -324,7 +351,14 @@ class ModelStoreProduct extends Model
     public function getTotalProducts($data = array())
     {
         $sql = "SELECT count(*) as total FROM `".$this->db->getTableName('catalog_product_entity')."`";
+        $implode = array();
 
+        if (!empty($data['filter_ids'])) {
+            $implode[] = "entity_id in ('".implode("' , '", $data['filter_ids'])."')";
+        }
+        if ( count( $implode ) > 0 ) {
+			$sql .= ' WHERE ' . implode( ' AND ', $implode );
+		}
         $result = $this->db->fetchOne($sql);
         return !empty($result) ? $result['total'] : 0;
         // global $wpdb;
