@@ -50,24 +50,24 @@ class ResolverStoreProduct extends Resolver
                     'args' => $args
                 ));
             },
-            // 'attributes' => function($root, $args) {
-            //     return $this->getAttributes(array(
-            //         'parent' => $root,
-            //         'args' => $args
-            //     ));
-            // },
+            'attributes' => function($root, $args) {
+                return $this->getAttributes(array(
+                    'parent' => $root,
+                    'args' => $args
+                ));
+            },
             'reviews' => function($root, $args) {
                 return $this->load->resolver('store/review/get', array(
                     'parent' => $root,
                     'args' => $args
                 ));
             },
-            // 'options' => function($root, $args) {
-            //     return $this->getOptions(array(
-            //         'parent' => $root,
-            //         'args' => $args
-            //     ));
-            // }
+            'options' => function($root, $args) {
+                return $this->getOptions(array(
+                    'parent' => $root,
+                    'args' => $args
+                ));
+            }
         );
 
         return $product_info;
@@ -143,64 +143,64 @@ class ResolverStoreProduct extends Resolver
     }
     public function getAttributes($data)
     {
-        $product = $data['parent'];
-        $results = $this->model_store_product->getProductAttributes($product['id']);
+        // $product = $data['parent'];
+        // $results = $this->model_store_product->getProductAttributes($product['id']);
 
         $attributes = array();
 
-        foreach ($results as $attribute) {
-            if (!$attribute['is_variation'] && $attribute['is_visible']) {
-                $attributes[] = array(
-                    'name'    => $attribute['name'],
-                    'options' => explode('|', $attribute['value'])
-                );
-            }
-        }
+        // foreach ($results as $attribute) {
+        //     if (!$attribute['is_variation'] && $attribute['is_visible']) {
+        //         $attributes[] = array(
+        //             'name'    => $attribute['name'],
+        //             'options' => explode('|', $attribute['value'])
+        //         );
+        //     }
+        // }
 
         return $attributes;
     }
     public function getOptions($data)
     {
-        $this->load->model('store/option');
-        $product = $data['parent'];
+        // $this->load->model('store/option');
+        // $product = $data['parent'];
 
-        $results = $this->model_store_product->getProductAttributes($product['id']);
+        // $results = $this->model_store_product->getProductAttributes($product['id']);
 
         $options = array();
 
 
-        foreach ($results as $attribute) {
-            if ($attribute['is_variation'] && $attribute['is_visible']) {
-                $option_values = array();
-                if ($attribute['is_taxonomy']) {
-                    $result_values = $this->model_store_product->getOptionValues($attribute['name']);
-                    $name = $this->model_store_option->getOptionLabel($attribute['name']);
+        // foreach ($results as $attribute) {
+        //     if ($attribute['is_variation'] && $attribute['is_visible']) {
+        //         $option_values = array();
+        //         if ($attribute['is_taxonomy']) {
+        //             $result_values = $this->model_store_product->getOptionValues($attribute['name']);
+        //             $name = $this->model_store_option->getOptionLabel($attribute['name']);
 
-                    foreach ($result_values as $value) {
-                        $option_values[] = array(
-                            'id'   => $value->slug,
-                            'name' => $value->name
-                        );
-                    }
-                } else {
-                    $name = $attribute['name'];
-                    $result_values = explode('|', $attribute['value']);
-                    foreach ($result_values as $value) {
-                        $option_values[] = array(
-                            'id'   => $value,
-                            'name' => $value
-                        );
-                    }
-                }
+        //             foreach ($result_values as $value) {
+        //                 $option_values[] = array(
+        //                     'id'   => $value->slug,
+        //                     'name' => $value->name
+        //                 );
+        //             }
+        //         } else {
+        //             $name = $attribute['name'];
+        //             $result_values = explode('|', $attribute['value']);
+        //             foreach ($result_values as $value) {
+        //                 $option_values[] = array(
+        //                     'id'   => $value,
+        //                     'name' => $value
+        //                 );
+        //             }
+        //         }
 
-                $options[] = array(
-                    'id'     => 'attribute_' . sanitize_title($attribute['name']),
-                    'type'   => 'radio',
-                    'name'   => $name,
-                    'values' => $option_values
-                );
-            }
-        }
+        //         $options[] = array(
+        //             'id'     => 'attribute_' . sanitize_title($attribute['name']),
+        //             'type'   => 'radio',
+        //             'name'   => $name,
+        //             'values' => $option_values
+        //         );
+        //     }
+        // }
 
         return $options;
     }

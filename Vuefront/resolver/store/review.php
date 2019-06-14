@@ -46,7 +46,7 @@ class ResolverStoreReview extends Resolver
 
         $comments = array();
 
-        foreach ($result as $comment) {
+        // foreach ($result as $comment) {
             // $rating_info = $objectManager->create('Magento\Review\Model\ResourceModel\Rating\Option\Vote\Collection')->addRatingInfo()->addOptionInfo()->addRatingOptions()->addFieldToFilter('review_id', $comment['review_id'])->getData();
             // $comments[] = array(
             //     'author'       => $comment['nickname'],
@@ -55,7 +55,7 @@ class ResolverStoreReview extends Resolver
             //     'content'      => $comment['detail'],
             //     'rating'       => (float)$rating_info[0]['value']
             // );
-        }
+        // }
 
         return $comments;
     }
