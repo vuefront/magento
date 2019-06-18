@@ -6,8 +6,11 @@ class ModelStoreProduct extends Model
 {
     public function getProductRelated($product_id)
     {
-        $product_data = $this->db->fetchAll("SELECT child_id as product_id
-        FROM `".$this->db->getTableName('catalog_product_relation')."` WHERE parent_id = '".(int)$product_id."'");
+
+        $sql = "SELECT linked_product_id as product_id
+        FROM `".$this->db->getTableName("catalog_product_link")."` where product_id = '".(int)$product_id."' and link_type_id=1";
+
+        $product_data = $this->db->fetchAll($sql);
 
         return $product_data;
     }
