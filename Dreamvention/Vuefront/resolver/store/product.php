@@ -28,7 +28,7 @@ class ResolverStoreProduct extends Resolver
             'description'      => $product['description'],
             'shortDescription' => $product['short_description'],
             'price'            => $currency->currency($product['price'], true, false),
-            'special'          => $product['special_price'] ? $currency->currency($product['special_price'], true, false) : null,
+            'special'          => $product['special_price'] ? $currency->currency($product['special_price'], true, false) : '',
             'model'            => $product['model'],
             'image'            => $thumb,
             'imageBig'         => $thumbBig,
@@ -69,7 +69,6 @@ class ResolverStoreProduct extends Resolver
                 ));
             }
         );
-
         return $product_info;
     }
     public function getList($args)
@@ -81,7 +80,7 @@ class ResolverStoreProduct extends Resolver
         );
 
         if ($args['size'] != '-1') {
-            $filter_data['start'] = $args['page'];
+            $filter_data['start'] = ((int)$args['page'] - 1) * (int)$args['size'];
             $filter_data['limit'] = $args['size'];
         }
 
@@ -143,19 +142,26 @@ class ResolverStoreProduct extends Resolver
     }
     public function getAttributes($data)
     {
-        // $product = $data['parent'];
-        // $results = $this->model_store_product->getProductAttributes($product['id']);
+        $product = $data['parent'];
+        $results = $this->model_store_product->getProductAttributes($product['id']);
 
         $attributes = array();
 
-        // foreach ($results as $attribute) {
-        //     if (!$attribute['is_variation'] && $attribute['is_visible']) {
-        //         $attributes[] = array(
-        //             'name'    => $attribute['name'],
-        //             'options' => explode('|', $attribute['value'])
-        //         );
-        //     }
-        // }
+        foreach ($results as $attribute) {
+            $values = explode(',', $attribute['value']);
+            $options = array();
+
+            foreach ($values as $option_id) {
+                $option_info = $this->model_store_product->getAttributeValue($option_id);
+                if(!empty($option_info)) {
+                    $options[] = $option_info['value'];
+                }
+            }
+            $attributes[] = array(
+                'name'    => (string)$attribute['name'],
+                'options' => $options
+            );
+        }
 
         return $attributes;
     }

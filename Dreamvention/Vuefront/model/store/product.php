@@ -28,13 +28,63 @@ class ModelStoreProduct extends Model
 
     public function getProductAttributes($product_id)
     {
-        global $wpdb;
+        $sql = "SELECT
+            ea.frontend_label as name,
+            CASE ea.backend_type
+            WHEN 'varchar' THEN ce_varchar.value
+            WHEN 'int' THEN ce_int.value
+            WHEN 'text' THEN ce_text.value
+            WHEN 'decimal' THEN ce_decimal.value
+            WHEN 'datetime' THEN ce_datetime.value
+            ELSE ea.backend_type
+            END AS value
+        FROM (
+            select cpe.sku, eas.entity_type_id, cpe.entity_id 
+                    FROM `".$this->db->getTableName('catalog_product_entity')."` AS cpe, eav_attribute_set AS eas
+                    WHERE cpe.attribute_set_id=eas.attribute_set_id) AS ce
+            LEFT JOIN eav_attribute AS ea
+                ON ce.entity_type_id = ea.entity_type_id and ea.is_user_defined = 1
+            LEFT JOIN catalog_product_entity_varchar AS ce_varchar
+                ON ce.entity_id = ce_varchar.entity_id
+                AND ea.attribute_id = ce_varchar.attribute_id
+                AND ea.backend_type = 'varchar'
+                AND ce_varchar.value IS NOT NULL
+            LEFT JOIN catalog_product_entity_int AS ce_int
+                ON ce.entity_id = ce_int.entity_id
+                AND ea.attribute_id = ce_int.attribute_id
+                AND ea.backend_type = 'int'
+                AND ce_int.value IS NOT NULL
+            LEFT JOIN catalog_product_entity_text AS ce_text
+                ON ce.entity_id = ce_text.entity_id
+                AND ea.attribute_id = ce_text.attribute_id
+                AND ea.backend_type = 'text'
+                AND ce_text.value IS NOT NULL
+            LEFT JOIN catalog_product_entity_decimal AS ce_decimal
+                ON ce.entity_id = ce_decimal.entity_id
+                AND ea.attribute_id = ce_decimal.attribute_id
+                AND ea.backend_type = 'decimal'
+                AND ce_decimal.value IS NOT NULL
+            LEFT JOIN catalog_product_entity_datetime AS ce_datetime
+                ON ce.entity_id = ce_datetime.entity_id
+                AND ea.attribute_id = ce_datetime.attribute_id
+                AND ea.backend_type = 'datetime'
+                AND ce_datetime.value IS NOT NULL
+        where ce.entity_id = '".$product_id."'  and CASE ea.backend_type
+            WHEN 'varchar' THEN ce_varchar.value
+            WHEN 'int' THEN ce_int.value
+            WHEN 'text' THEN ce_text.value
+            WHEN 'decimal' THEN ce_decimal.value
+            WHEN 'datetime' THEN ce_datetime.value
+            ELSE ea.backend_type
+            END IS NOT NULL";
 
-        $result = $wpdb->get_row("SELECT pm.`meta_value` AS attributes FROM `wp_postmeta` pm WHERE pm.`post_id` = '".(int)$product_id."' AND pm.`meta_key` = '_product_attributes'");
+        return $this->db->fetchAll($sql);
+    }
 
-        $attribute_data = unserialize($result->attributes);
-
-        return $attribute_data;
+    public function getAttributeValue($option_id) {
+        return $this->db->fetchOne("SELECT value
+            FROM `".$this->db->getTableName('eav_attribute_option_value')."` WHERE option_id='".$option_id."'
+        ");
     }
 
     public function getOptionValues($taxonomy) {
@@ -170,63 +220,73 @@ class ModelStoreProduct extends Model
         return $this->db->fetchOne($sql);
     }
 
-    public function getVariationLowPrice($product_id)
-    {
-        global $wpdb;
-
-        $sql ="SELECT 
-        p.`ID`,
-        (pm.`meta_value` + 0) AS price
-       FROM
-         wp_posts p 
-         LEFT JOIN wp_postmeta pm 
-           ON (
-             pm.post_id = p.ID 
-             AND pm.meta_key = '_regular_price'
-           ) 
-       WHERE p.`post_parent` = '".(int)$product_id."' 
-       ORDER BY price ASC
-       LIMIT 0, 1";
-
-        $result = $wpdb->get_row($sql);
-
-        return $result->ID;
-    }
-
     public function getProducts($data = array())
     {
-        $objectManager  = ObjectManager::getInstance();
-        $resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
-        $connection = $resource->getConnection();
-        $tableName = $resource->getTableName('catalog_product_entity');
-
-        $sql = "SELECT entity_id as product_id, entity_id as sort_order, sku as model, created_at as date_added FROM `".$tableName."`";
-
+        $sql = "SELECT p.entity_id as product_id, p.entity_id as sort_order, p.sku as model, p.created_at as date_added, ps.value as special
+            FROM `".$this->db->getTableName('catalog_product_entity')."` p 
+            LEFT JOIN `".$this->db->getTableName('catalog_product_entity_decimal')."` ps on
+                p.entity_id = ps.entity_id
+                AND ps.attribute_id = (
+                    SELECT
+                        attribute_id
+                    FROM
+                        `".$this->db->getTableName('eav_attribute')."`
+                    WHERE
+                        entity_type_id = 4
+                    AND attribute_code = 'special_price' 
+                )
+            LEFT JOIN `".$this->db->getTableName('catalog_product_entity_varchar')."` pn on
+                p.entity_id = pn.entity_id
+                AND pn.attribute_id = (
+                    SELECT
+                        attribute_id
+                    FROM
+                    `".$this->db->getTableName('eav_attribute')."`
+                    WHERE
+                        entity_type_id = 4
+                    AND attribute_code = 'name' 
+                ) 
+            LEFT JOIN `".$this->db->getTableName('catalog_product_entity_text')."` pd on
+                p.entity_id = pd.entity_id
+                AND pd.attribute_id = (
+                    SELECT
+                        attribute_id
+                    FROM
+                    `".$this->db->getTableName('eav_attribute')."`
+                    WHERE
+                        entity_type_id = 4
+                    AND attribute_code = 'description' 
+                ) where p.entity_id NOT IN (
+                    SELECT pr.child_id FROM magento2.catalog_product_relation pr
+                    left join magento2.catalog_product_entity pe on pe.entity_id = pr.parent_id WHERE pe.type_id='configurable' 
+                ) ";
+        
         $implode = array();
 
         if (!empty($data['filter_ids'])) {
-            $implode[] = "entity_id in ('".implode("' , '", $data['filter_ids'])."')";
+            $implode[] = "p.entity_id in ('".implode("' , '", $data['filter_ids'])."')";
         }
     
         if (!empty($data['filter_category_id'])) {
-        //     $implode[] = "'".(int)$data['filter_category_id']."' IN (SELECT t.`term_id` FROM wp_term_relationships rel
-        //     LEFT JOIN wp_term_taxonomy tax ON tax.term_taxonomy_id = rel.term_taxonomy_id
-        //     LEFT JOIN wp_terms t ON t.term_id = tax.term_id
-        //     WHERE rel.`object_id` = p.ID AND tax.`taxonomy` = 'product_cat')";
+            $implode[] = "'".(int)$data['filter_category_id']."' IN (
+                SELECT category_id
+                FROM `".$this->db->getTableName('catalog_category_product')."`
+                WHERE product_id=p.entity_id
+            )";
         }
     
         if (!empty($data['filter_special'])) {
-        //     $implode[] = "(ps.meta_value IS NOT NULL AND (ps.meta_value + 0) > 0)";
+            $implode[] = "ps.value IS NOT NULL";
         }
     
-        // if (!empty($data['filter_search'])) {
-        //     $implode[] = "(p.post_title LIKE '%".$data['filter_search']."%' 
-        //     OR p.post_content LIKE '%".$data['filter_search']."%'
-        //     OR ps2.meta_value LIKE '%".$data['filter_search']."%')";
-        // }
+        if (!empty($data['filter_search'])) {
+            $implode[] = "(pn.value LIKE '%".html_entity_decode($data['filter_search'], ENT_QUOTES, 'UTF-8')."%' 
+            OR pd.value LIKE '%".html_entity_decode($data['filter_search'], ENT_QUOTES, 'UTF-8')."%'
+            OR p.sku LIKE '%".html_entity_decode($data['filter_search'], ENT_QUOTES, 'UTF-8')."%')";
+        }
 
 		if ( count( $implode ) > 0 ) {
-			$sql .= ' WHERE ' . implode( ' AND ', $implode );
+			$sql .= ' AND ' . implode( ' AND ', $implode );
 		}
 
         $sort_data = array(
@@ -262,318 +322,79 @@ class ModelStoreProduct extends Model
 
             $sql .= " LIMIT " . (int) $data['start'] . "," . (int) $data['limit'];
         }
-        return $connection->fetchAll($sql);
-        // global $wpdb;
-        // $sql = "SELECT 
-        //     p.ID, 
-        //     p.post_title, 
-        //     (p.menu_order + 0) as sort_order,
-        //     (pm.meta_value + 0) AS price,
-        //     (ps.meta_value + 0) AS special,
-        //     (pr.meta_value + 0) AS rating,
-        //     p.post_date AS date_added,
-        //     ps2.meta_value as model
-        // FROM wp_posts p
-        // LEFT JOIN wp_postmeta pm ON (pm.post_id = p.ID AND pm.meta_key = '_regular_price')
-        // LEFT JOIN wp_postmeta ps ON (ps.post_id = p.ID AND ps.meta_key = '_sale_price')
-        // LEFT JOIN wp_postmeta pr ON (pr.post_id = p.ID AND pr.meta_key = '_wc_average_rating')
-        // LEFT JOIN wp_postmeta ps2 ON (ps2.post_id = p.ID AND ps2.meta_key = '_sku')
-        // WHERE p.post_type = 'product' AND p.post_status = 'publish'";
 
-        // $implode = array();
-
-        // if (!empty($data['filter_ids'])) {
-        //     $implode[] = "p.ID in ('".implode("' , '", $data['filter_ids'])."')";
-        // }
-
-        // if (!empty($data['filter_category_id'])) {
-        //     $implode[] = "'".(int)$data['filter_category_id']."' IN (SELECT t.`term_id` FROM wp_term_relationships rel
-        //     LEFT JOIN wp_term_taxonomy tax ON tax.term_taxonomy_id = rel.term_taxonomy_id
-        //     LEFT JOIN wp_terms t ON t.term_id = tax.term_id
-        //     WHERE rel.`object_id` = p.ID AND tax.`taxonomy` = 'product_cat')";
-        // }
-
-        // if (!empty($data['filter_special'])) {
-        //     $implode[] = "(ps.meta_value IS NOT NULL AND (ps.meta_value + 0) > 0)";
-        // }
-
-        // if (!empty($data['filter_search'])) {
-        //     $implode[] = "(p.post_title LIKE '%".$data['filter_search']."%' 
-        //     OR p.post_content LIKE '%".$data['filter_search']."%'
-        //     OR ps2.meta_value LIKE '%".$data['filter_search']."%')";
-        // }
-
-        // if (count($implode) > 0) {
-        //     $sql .= ' AND ' . implode(' AND ', $implode);
-        // }
-
-        // $sql .= " GROUP BY p.ID";
-
-        // $sort_data = array(
-        //     'p.ID',
-        //     'price',
-        //     'special',
-        //     'rating',
-        //     'date_added',
-        //     'model',
-        //     'sort_order'
-        // );
-
-        // if (isset($data['sort']) && in_array($data['sort'], $sort_data)) {
-        //     $sql .= " ORDER BY " . $data['sort'];
-        // } else {
-        //     $sql .= " ORDER BY p.ID";
-        // }
-
-        // if (isset($data['order']) && ($data['order'] == 'DESC')) {
-        //     $sql .= " DESC";
-        // } else {
-        //     $sql .= " ASC";
-        // }
-
-        // if (isset($data['start']) || isset($data['limit'])) {
-        //     if ($data['start'] < 0) {
-        //         $data['start'] = 0;
-        //     }
-
-        //     if ($data['limit'] < 1) {
-        //         $data['limit'] = 20;
-        //     }
-
-        //     $sql .= " LIMIT " . (int) $data['start'] . "," . (int) $data['limit'];
-        // }
-
-        // $results = $wpdb->get_results($sql);
-
-        // return $results;
+        return $this->db->fetchAll($sql);
     }
 
     public function getTotalProducts($data = array())
     {
-        $sql = "SELECT count(*) as total FROM `".$this->db->getTableName('catalog_product_entity')."`";
+        $sql = "SELECT count(*) as total 
+            FROM `".$this->db->getTableName('catalog_product_entity')."` p 
+            LEFT JOIN `".$this->db->getTableName('catalog_product_entity_decimal')."` ps on
+                p.entity_id = ps.entity_id
+                AND ps.attribute_id = (
+                    SELECT
+                        attribute_id
+                    FROM
+                        `".$this->db->getTableName('eav_attribute')."`
+                    WHERE
+                        entity_type_id = 4
+                    AND attribute_code = 'special_price' 
+                )
+            LEFT JOIN `".$this->db->getTableName('catalog_product_entity_varchar')."` pn on
+                p.entity_id = pn.entity_id
+                AND pn.attribute_id = (
+                    SELECT
+                        attribute_id
+                    FROM
+                    `".$this->db->getTableName('eav_attribute')."`
+                    WHERE
+                        entity_type_id = 4
+                    AND attribute_code = 'name' 
+                ) 
+            LEFT JOIN `".$this->db->getTableName('catalog_product_entity_text')."` pd on
+                p.entity_id = pd.entity_id
+                AND pd.attribute_id = (
+                    SELECT
+                        attribute_id
+                    FROM
+                    `".$this->db->getTableName('eav_attribute')."`
+                    WHERE
+                        entity_type_id = 4
+                    AND attribute_code = 'description' 
+                ) where p.entity_id NOT IN (
+                    SELECT pr.child_id FROM magento2.catalog_product_relation pr
+                    left join magento2.catalog_product_entity pe on pe.entity_id = pr.parent_id WHERE pe.type_id='configurable'
+                ) ";
         $implode = array();
 
         if (!empty($data['filter_ids'])) {
-            $implode[] = "entity_id in ('".implode("' , '", $data['filter_ids'])."')";
+            $implode[] = "p.entity_id in ('".implode("' , '", $data['filter_ids'])."')";
         }
+
+        if (!empty($data['filter_special'])) {
+            $implode[] = "ps.value IS NOT NULL";
+        }
+
+        if (!empty($data['filter_search'])) {
+            $implode[] = "(pn.value LIKE '%".$data['filter_search']."%' 
+            OR pd.value LIKE '%".$data['filter_search']."%'
+            OR p.sku LIKE '%".$data['filter_search']."%')";
+        }
+
+        if (!empty($data['filter_category_id'])) {
+            $implode[] = "'".(int)$data['filter_category_id']."' IN (
+                SELECT category_id
+                FROM `".$this->db->getTableName('catalog_category_product')."`
+                WHERE product_id=p.entity_id
+            )";
+        }
+
         if ( count( $implode ) > 0 ) {
-			$sql .= ' WHERE ' . implode( ' AND ', $implode );
+			$sql .= ' AND ' . implode( ' AND ', $implode );
 		}
         $result = $this->db->fetchOne($sql);
+
         return !empty($result) ? $result['total'] : 0;
-        // global $wpdb;
-
-        // $sql = "SELECT count(*) as total 
-        // from wp_posts p
-        // LEFT JOIN wp_postmeta ps ON (ps.post_id = p.ID AND ps.meta_key = '_sale_price') 
-        // LEFT JOIN wp_postmeta ps2 ON (ps2.post_id = p.ID AND ps2.meta_key = '_sku')
-        // where p.post_type='product' AND post_status = 'publish'";
-
-        // $implode = array();
-
-        // if (!empty($data['filter_ids'])) {
-        //     $implode[] = "p.ID in ('".implode("' , '", $data['filter_ids'])."')";
-        // }
-
-        // if (!empty($data['filter_category_id'])) {
-        //     $implode[] = "'".(int)$data['filter_category_id']."' IN (SELECT t.`term_id` FROM wp_term_relationships rel
-        //     LEFT JOIN wp_term_taxonomy tax ON tax.term_taxonomy_id = rel.term_taxonomy_id
-        //     LEFT JOIN wp_terms t ON t.term_id = tax.term_id
-        //     WHERE rel.`object_id` = p.ID AND tax.`taxonomy` = 'product_cat')";
-        // }
-
-        // if (!empty($data['filter_special'])) {
-        //     $implode[] = "(ps.meta_value IS NOT NULL AND (ps.meta_value + 0) > 0)";
-        // }
-
-        // if (!empty($data['filter_search'])) {
-        //     $implode[] = "(p.post_title LIKE '%".$data['filter_search']."%' 
-        //     OR p.post_content LIKE '%".$data['filter_search']."%'
-        //     OR ps2.meta_value LIKE '%".$data['filter_search']."%')";
-        // }
-
-        // if (count($implode) > 0) {
-        //     $sql .= ' AND ' . implode(' AND ', $implode);
-        // }
-
-        // $result = $wpdb->get_row($sql);
-
-        // return $result->total;
-    }
-
-    public function getCurrencySymbol($currency = '')
-    {
-        if (! $currency) {
-            $currency = get_option( 'woocommerce_currency' );
-        }
-
-        $symbols = apply_filters('woocommerce_currency_symbols', array(
-            'AED' => 'د.إ',
-            'AFN' => '؋',
-            'ALL' => 'L',
-            'AMD' => 'AMD',
-            'ANG' => 'ƒ',
-            'AOA' => 'Kz',
-            'ARS' => '$',
-            'AUD' => '$',
-            'AWG' => 'ƒ',
-            'AZN' => 'AZN',
-            'BAM' => 'KM',
-            'BBD' => '$',
-            'BDT' => '৳ ',
-            'BGN' => 'лв.',
-            'BHD' => '.د.ب',
-            'BIF' => 'Fr',
-            'BMD' => '$',
-            'BND' => '$',
-            'BOB' => 'Bs.',
-            'BRL' => 'R$',
-            'BSD' => '$',
-            'BTC' => '฿',
-            'BTN' => 'Nu.',
-            'BWP' => 'P',
-            'BYR' => 'Br',
-            'BZD' => '$',
-            'CAD' => '$',
-            'CDF' => 'Fr',
-            'CHF' => 'CHF',
-            'CLP' => '$',
-            'CNY' => '¥',
-            'COP' => '$',
-            'CRC' => '₡',
-            'CUC' => '$',
-            'CUP' => '$',
-            'CVE' => '$',
-            'CZK' => 'Kč',
-            'DJF' => 'Fr',
-            'DKK' => 'DKK',
-            'DOP' => 'RD$',
-            'DZD' => 'د.ج',
-            'EGP' => 'EGP',
-            'ERN' => 'Nfk',
-            'ETB' => 'Br',
-            'EUR' => '€',
-            'FJD' => '$',
-            'FKP' => '£',
-            'GBP' => '£',
-            'GEL' => 'ლ',
-            'GGP' => '£',
-            'GHS' => '₵',
-            'GIP' => '£',
-            'GMD' => 'D',
-            'GNF' => 'Fr',
-            'GTQ' => 'Q',
-            'GYD' => '$',
-            'HKD' => '$',
-            'HNL' => 'L',
-            'HRK' => 'Kn',
-            'HTG' => 'G',
-            'HUF' => 'Ft',
-            'IDR' => 'Rp',
-            'ILS' => '₪',
-            'IMP' => '£',
-            'INR' => '₹',
-            'IQD' => 'ع.د',
-            'IRR' => '﷼',
-            'IRT' => 'تومان',
-            'ISK' => 'kr.',
-            'JEP' => '£',
-            'JMD' => '$',
-            'JOD' => 'د.ا',
-            'JPY' => '¥',
-            'KES' => 'KSh',
-            'KGS' => 'сом',
-            'KHR' => '៛',
-            'KMF' => 'Fr',
-            'KPW' => '₩',
-            'KRW' => '₩',
-            'KWD' => 'د.ك',
-            'KYD' => '$',
-            'KZT' => 'KZT',
-            'LAK' => '₭',
-            'LBP' => 'ل.ل',
-            'LKR' => 'රු',
-            'LRD' => '$',
-            'LSL' => 'L',
-            'LYD' => 'ل.د',
-            'MAD' => 'د.م.',
-            'MDL' => 'MDL',
-            'MGA' => 'Ar',
-            'MKD' => 'ден',
-            'MMK' => 'Ks',
-            'MNT' => '₮',
-            'MOP' => 'P',
-            'MRO' => 'UM',
-            'MUR' => '₨',
-            'MVR' => '.ރ',
-            'MWK' => 'MK',
-            'MXN' => '$',
-            'MYR' => 'RM',
-            'MZN' => 'MT',
-            'NAD' => '$',
-            'NGN' => '₦',
-            'NIO' => 'C$',
-            'NOK' => 'kr',
-            'NPR' => '₨',
-            'NZD' => '$',
-            'OMR' => 'ر.ع.',
-            'PAB' => 'B/.',
-            'PEN' => 'S/.',
-            'PGK' => 'K',
-            'PHP' => '₱',
-            'PKR' => '₨',
-            'PLN' => 'zł',
-            'PRB' => 'р.',
-            'PYG' => '₲',
-            'QAR' => 'ر.ق',
-            'RMB' => '¥',
-            'RON' => 'lei',
-            'RSD' => 'дин.',
-            'RUB' => '₽',
-            'RWF' => 'Fr',
-            'SAR' => 'ر.س',
-            'SBD' => '$',
-            'SCR' => '₨',
-            'SDG' => 'ج.س.',
-            'SEK' => 'kr',
-            'SGD' => '$',
-            'SHP' => '£',
-            'SLL' => 'Le',
-            'SOS' => 'Sh',
-            'SRD' => '$',
-            'SSP' => '£',
-            'STD' => 'Db',
-            'SYP' => 'ل.س',
-            'SZL' => 'L',
-            'THB' => '฿',
-            'TJS' => 'ЅМ',
-            'TMT' => 'm',
-            'TND' => 'د.ت',
-            'TOP' => 'T$',
-            'TRY' => '₺',
-            'TTD' => '$',
-            'TWD' => 'NT$',
-            'TZS' => 'Sh',
-            'UAH' => '₴',
-            'UGX' => 'UGX',
-            'USD' => '$',
-            'UYU' => '$',
-            'UZS' => 'UZS',
-            'VEF' => 'Bs F',
-            'VND' => '₫',
-            'VUV' => 'Vt',
-            'WST' => 'T',
-            'XAF' => 'Fr',
-            'XCD' => '$',
-            'XOF' => 'Fr',
-            'XPF' => 'Fr',
-            'YER' => '﷼',
-            'ZAR' => 'R',
-            'ZMW' => 'ZK',
-        ));
-
-        $currency_symbol = isset($symbols[ $currency ]) ? $symbols[ $currency ] : '';
-
-        return apply_filters('woocommerce_currency_symbol', $currency_symbol, $currency);
     }
 }

@@ -51,7 +51,19 @@ class ModelStoreCategory extends Model {
 	}
 
 	public function getCategories( $data = array() ) {
-		$sql = "SELECT c.entity_id as category_id, c.entity_id as sort_order FROM `".$this->db->getTableName('catalog_category_entity')."` c";
+		$sql = "SELECT c.entity_id as category_id, position as sort_order 
+            FROM `".$this->db->getTableName('catalog_category_entity')."` c
+            LEFT JOIN `catalog_category_entity_int` ca on
+                c.entity_id = ca.entity_id
+                AND ca.attribute_id = (
+                SELECT
+                    attribute_id
+                FROM
+                    `eav_attribute`
+                WHERE
+                    entity_type_id = 3
+                    AND attribute_code = 'is_active' )
+            WHERE ca.value = 1";
 
 		$implode = array();
 
@@ -60,7 +72,7 @@ class ModelStoreCategory extends Model {
 		}
 
 		if ( count( $implode ) > 0 ) {
-			$sql .= ' WHERE ' . implode( ' AND ', $implode );
+			$sql .= ' AND ' . implode( ' AND ', $implode );
 		}
 
 		$sql .= " GROUP BY c.entity_id";
@@ -93,14 +105,25 @@ class ModelStoreCategory extends Model {
 
 			$sql .= " LIMIT " . (int) $data['start'] . "," . (int) $data['limit'];
         }
-        
-		$results = $this->db->fetchAll( $sql );
+
+        $results = $this->db->fetchAll( $sql );
 
 		return $results;
 	}
 
 	public function getTotalCategories( $data = array() ) {
-		$sql = "SELECT count(*) as total FROM `".$this->db->getTableName('catalog_category_entity')."` c";
+		$sql = "SELECT count(*) as total FROM `".$this->db->getTableName('catalog_category_entity')."` c 
+        LEFT JOIN `catalog_category_entity_int` ca on
+            c.entity_id = ca.entity_id
+            AND ca.attribute_id = (
+            SELECT
+                attribute_id
+            FROM
+                `eav_attribute`
+            WHERE
+                entity_type_id = 3
+                AND attribute_code = 'is_active' )
+        WHERE ca.value = 1";
 
 		$implode = array();
 
@@ -109,7 +132,7 @@ class ModelStoreCategory extends Model {
 		}
 
 		if ( count( $implode ) > 0 ) {
-			$sql .= ' WHERE ' . implode( ' AND ', $implode );
+			$sql .= ' AND ' . implode( ' AND ', $implode );
 		}
 
         $results = $this->db->fetchOne( $sql );
