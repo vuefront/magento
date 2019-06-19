@@ -13,12 +13,16 @@ require_once(DIR_PLUGIN . 'system/engine/proxy.php');
 require_once(DIR_PLUGIN . 'system/library/db.php');
 require_once(DIR_PLUGIN . 'system/library/image.php');
 require_once(DIR_PLUGIN . 'system/library/store.php');
+require_once(DIR_PLUGIN . 'system/library/currency.php');
 
 function start() {
     $registry = new Registry();
 
     $db = new DB();
     $registry->set('db', $db);
+
+    $currency = new Currency();
+    $registry->set('currency', $currency);
 
     $image = new Image();
     $registry->set('image', $image);

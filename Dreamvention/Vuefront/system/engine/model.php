@@ -1,5 +1,15 @@
 <?php 
+/**
+ * @property DB $db
+ * @property Image $image
+ * @property Store $store
+ * @property Currency $currency
+ * @property ModelStoreProduct $model_store_product
+ * @property Loader $load
+ */
+
 abstract class Model {
+
 	protected $registry;
 
 	public function __construct($registry) {

@@ -1,7 +1,6 @@
 <?php
 
 use \Magento\Framework\App\ObjectManager;
-use \Magento\Framework\UrlInterface;
 
 class ResolverStoreProduct extends Resolver
 {
@@ -18,9 +17,17 @@ class ResolverStoreProduct extends Resolver
         $rating = $this->model_store_product->getProductRating($args['id']);
 
         $objectManager =ObjectManager::getInstance();
-        $store = $objectManager->get('Magento\Store\Model\StoreManagerInterface')->getStore();
-        $thumb = $this->image->getUrl($product['thumbnail']);
-        $thumbBig = $this->image->getUrl($product['image']);
+
+        if (!empty($product['thumbnail'])) {
+            $thumb = $this->image->getUrl($product['thumbnail']);
+        } else {
+            $thumb = '';
+        }
+        if (!empty($product['image'])) {
+            $thumbBig = $this->image->getUrl($product['image']);
+        } else {
+            $thumbBig = '';
+        }
         $currency = $objectManager->get('Magento\Framework\Pricing\Helper\Data');
         $product_info = array(
             'id'               => $product['product_id'],
@@ -32,40 +39,42 @@ class ResolverStoreProduct extends Resolver
             'model'            => $product['model'],
             'image'            => $thumb,
             'imageBig'         => $thumbBig,
-            'imageLazy'        => function($root, $args) use ($product){
-                return $this->image->resize($product['thumbnail'], 10, 10);
+            'imageLazy'        => function ($root, $args) use ($product) {
+                return !empty($product['thumbnail']) ? $this->image->resize($product['thumbnail'], 10, 10) : '';
             },
             'stock'            => $product['quantity'] > 0,
             'rating'           => (float)$rating,
             'keyword'          => $product['keyword'],
-            'images' => function($root, $args) {
+            'images' => function ($root, $args) use ($product) {
                 return $this->getImages(array(
                     'parent' => $root,
-                    'args' => $args
+                    'args' => $args,
+                    'product' => $product
                 ));
             },
-            'products' => function($root, $args) {
+            'products' => function ($root, $args) {
                 return $this->getRelatedProducts(array(
                     'parent' => $root,
                     'args' => $args
                 ));
             },
-            'attributes' => function($root, $args) {
+            'attributes' => function ($root, $args) {
                 return $this->getAttributes(array(
                     'parent' => $root,
                     'args' => $args
                 ));
             },
-            'reviews' => function($root, $args) {
+            'reviews' => function ($root, $args) {
                 return $this->load->resolver('store/review/get', array(
                     'parent' => $root,
                     'args' => $args
                 ));
             },
-            'options' => function($root, $args) {
+            'options' => function ($root, $args) use ($product) {
                 return $this->getOptions(array(
                     'parent' => $root,
-                    'args' => $args
+                    'args' => $args,
+                    'product' => $product
                 ));
             }
         );
@@ -153,7 +162,7 @@ class ResolverStoreProduct extends Resolver
 
             foreach ($values as $option_id) {
                 $option_info = $this->model_store_product->getAttributeValue($option_id);
-                if(!empty($option_info)) {
+                if (!empty($option_info)) {
                     $options[] = $option_info['value'];
                 }
             }
@@ -167,46 +176,93 @@ class ResolverStoreProduct extends Resolver
     }
     public function getOptions($data)
     {
-        // $this->load->model('store/option');
-        // $product = $data['parent'];
-
-        // $results = $this->model_store_product->getProductAttributes($product['id']);
+        $this->load->model('store/product');
+        $product = $data['parent'];
+        $product_raw = $data['product'];
 
         $options = array();
 
+        if (!$product_raw['has_options']) {
+            return $options;
+        }
 
-        // foreach ($results as $attribute) {
-        //     if ($attribute['is_variation'] && $attribute['is_visible']) {
-        //         $option_values = array();
-        //         if ($attribute['is_taxonomy']) {
-        //             $result_values = $this->model_store_product->getOptionValues($attribute['name']);
-        //             $name = $this->model_store_option->getOptionLabel($attribute['name']);
+       
+        $results = $this->model_store_product->getSimpleProductOptions($product['id']);
+        foreach ($results as $value) {
+            $type = 'text';
 
-        //             foreach ($result_values as $value) {
-        //                 $option_values[] = array(
-        //                     'id'   => $value->slug,
-        //                     'name' => $value->name
-        //                 );
-        //             }
-        //         } else {
-        //             $name = $attribute['name'];
-        //             $result_values = explode('|', $attribute['value']);
-        //             foreach ($result_values as $value) {
-        //                 $option_values[] = array(
-        //                     'id'   => $value,
-        //                     'name' => $value
-        //                 );
-        //             }
-        //         }
+            switch ($value['type']) {
+                case 'field':
+                    $type = 'text';
+                    break;
+                case 'area':
+                    $type = 'textarea';
+                    break;
+                case 'drop_down':
+                    $type = 'select';
+                    break;
+                case 'multiple':
+                    $type = 'checkbox';
+                    break;
+                case 'date_time':
+                    $type = 'datetime';
+                    break;
+                default:
+                    $type = $value['type'];
+                    break;
+            }
 
-        //         $options[] = array(
-        //             'id'     => 'attribute_' . sanitize_title($attribute['name']),
-        //             'type'   => 'radio',
-        //             'name'   => $name,
-        //             'values' => $option_values
-        //         );
-        //     }
-        // }
+            $values = array();
+
+            $result_values = $this->model_store_product->getOptionValues($value['option_id']);
+
+
+            foreach ($result_values as $option_value) {
+                $values[] = array(
+                    'id' => $option_value['option_value_id'],
+                    'name' => $option_value['name'],
+                );
+            }
+
+
+            $options['option_'.$value['option_id']] = array(
+                'id' => 'option_'.$value['option_id'],
+                'name' => $value['title'],
+                'type' => $type,
+                'values' => $values
+            );
+        }
+        if ($product_raw['type'] == 'configurable') {
+            $results = $this->model_store_product->getProductOptions($product['id']);
+
+            foreach ($results as $product) {
+                $attributes = $this->model_store_product->getProductAttributes($product['product_id']);
+                foreach ($attributes as $attribute) {
+                    if (!isset($options[$attribute['id']])) {
+                        $options[$attribute['id']] = array(
+                        'id' => $attribute['id'],
+                        'name' => $attribute['name'],
+                        'type' => 'radio',
+                        'values' => array()
+                    );
+                    }
+
+                    $values = explode(',', $attribute['value']);
+
+                    foreach ($values as $option_id) {
+                        $option_info = $this->model_store_product->getAttributeValue($option_id);
+                        if (!empty($option_info)) {
+                            $options[$attribute['id']]['values'][$option_id] = array(
+                            'id' => $option_id,
+                            'name' => $option_info['value']
+                        );
+                        }
+                    }
+                }
+            }
+        }
+
+        
 
         return $options;
     }
@@ -220,13 +276,15 @@ class ResolverStoreProduct extends Resolver
         $image_ids = array_slice($image_ids, 0, $args['limit']);
 
         $images = array();
-        
+
         foreach ($image_ids as $image) {
-            $images[]           = array(
+            if ($data['product']['image'] !== $image['image']) {
+                $images[]           = array(
                 'image'     => $this->image->getUrl($image['image']),
                 'imageBig'     => $this->image->getUrl($image['image']),
                 'imageLazy' => $this->image->resize($image['image'], 10, 10)
             );
+            }
         }
 
         return $images;

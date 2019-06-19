@@ -1,67 +1,147 @@
 <?php
 
+use \Magento\Framework\App\ObjectManager;
+
 class ResolverStoreCart extends Resolver
 {
-    public function add($args) {
-        $this->load->model('store/product');
+    public function add($args)
+    {
+        $objectManager =ObjectManager::getInstance();
 
-        $product = $this->model_store_product->getProduct($args['id']);
+        $productRepository = $objectManager->get('Magento\Catalog\Model\ProductRepository');
+        $cart = $objectManager->get('Magento\Checkout\Model\Cart');
 
-        if ($product->type == 'variable') {
-            $options = array();
-            foreach ($args['options'] as $option) {
-                $options[ $option['id'] ] = $option['value'];
-            }
-            $variation_id = $this->find_matching_product_variation_id($args['id'], $options);
+        $options = array();
+        $super_attributes = array();
 
-            WC()->cart->add_to_cart($args['id'], $args['quantity'], $variation_id);
-        } else {
-            WC()->cart->add_to_cart($args['id'], $args['quantity']);
-        }
+        foreach ($args['options'] as $value) {
+            if(substr( $value['id'], 0, 7 ) === "option_") {
+                if(strpos($value['value'], '|') === false) {
+                    $options[str_replace('option_', '', $value['id'])] = $value['value'];
 
-        return $this->get($args);
-    }
-    public function update($args) {
-        WC()->cart->set_quantity($args['key'], $args['quantity']);
+                } else {
+                    $values = array_filter(explode('|', $value['value']), function ($value) {
+                        return $value !== '';
+                    });
+                    $options[str_replace('option_', '', $value['id'])] = $values;
 
-        return $this->get($args);
-    }
-    public function remove($args) {
-        WC()->cart->remove_cart_item($args['key']);
+                }
 
-        return $this->get($args);
-    }
-    public function get($args) {
-        $cart = array();
-        $this->load->model('store/product');
-        $cart['products'] = array();
-        foreach (WC()->cart->get_cart() as $product) {
-            if ($product['variation_id'] !== 0) {
-                $product_id = $product['variation_id'];
             } else {
-                $product_id = $product['product_id'];
+                $super_attributes[$value['id']] = $value['value'];
             }
-            $cart['products'][] = array(
-                'key'      => $product['key'],
-                'product'  => $this->load->resolver('store/product/get', array( 'id' => $product_id )),
-                'quantity' => $product['quantity'],
-                'option'   => array(),
-                'total'    => $product['line_total'] . ' ' . $this->model_store_product->getCurrencySymbol()
-            );
         }
 
-        $total = !empty($cart['products']) ? WC()->cart->total : 0;
+
+        $params = array(
+                'product' => $args['id'],
+                'qty' => $args['quantity'],
+                'options' => $options,
+                'super_attribute' => $super_attributes
+            );
+        $product_info = $productRepository->getById($args['id']);
+        try {
+            $cart->addProduct($product_info, $params);
+        } catch(Exception $e) {
+            echo '<pre>'; print_r($e->getMessage()); echo '</pre>';
+        }
+        $cart->save();
+
+        return $this->get($args);
+    }
+    public function update($args)
+    {
+        $objectManager = ObjectManager::getInstance();
+        $cart = $objectManager->get('Magento\Checkout\Model\Cart');
         
-        $cart['total'] = $total . ' ' . $this->model_store_product->getCurrencySymbol();
+        $item = $cart->getQuote()->getItemById($args['key']);
+        $item->setQty($args['quantity']);
+        $cart->save();
+
+        return $this->get($args);
+    }
+    public function remove($args)
+    {
+        $objectManager =ObjectManager::getInstance();
+
+        $modelCart = $objectManager->get('Magento\Checkout\Model\Cart');
+
+        $modelCart->removeItem($args['key'])->save();
+
+        return $this->get($args);
+    }
+    public function get($args)
+    {
+        $objectManager =ObjectManager::getInstance();
+
+        $modelCart = $objectManager->get('Magento\Checkout\Model\Cart');
+
+        $modelCart->getQuote()->collectTotals();
+        $cart = array(
+            'products' => array(),
+            'total' => $this->currency->format($modelCart->getQuote()->getGrandTotal())
+        );
+
+        $results = $modelCart->getItems();
+
+        foreach ($results as $value) {
+            if (!$value->isDeleted() && !$value->getParentItemId() && !$value->getParentItem()) {
+                $options = array();
+                
+                $result_options = $value->getProduct()->getTypeInstance(true)->getOrderOptions($value->getProduct());
+
+                if (!empty($result_options['attributes_info'])) {
+                    foreach ($result_options['attributes_info'] as $option) {
+                        $options[] = array(
+                        'name' => $option['label'],
+                        'type' => 'radio',
+                        'value' => $option['value']
+                    );
+                    }
+                }
+                if (!empty($result_options['options'])) {
+                    foreach ($result_options['options'] as $option) {
+                        $type = 'text';
+
+                        switch ($option['option_type']) {
+                            case 'field':
+                                $type = 'text';
+                                break;
+                            case 'area':
+                                $type = 'textarea';
+                                break;
+                            case 'drop_down':
+                                $type = 'select';
+                                break;
+                            case 'multiple':
+                                $type = 'checkbox';
+                                break;
+                            case 'date_time':
+                                $type = 'datetime';
+                                break;
+                            default:
+                                $type = $option['option_type'];
+                                break;
+                        }
+
+                        $options[] = array(
+                            'name' => $option['label'],
+                            'type' => $type,
+                            'value' => $option['value']
+                        );
+                    }
+                }
+
+                $cart['products'][] = array(
+                    'key'      => $value->getId(),
+                    'product'  => $this->load->resolver('store/product/get', array( 'id' => $value->getProduct()->getID() )),
+                    'quantity' => $value->getQty(),
+                    'option'   => $options,
+                    'total'    => $this->currency->format($value->getPrice() * $value->getQty())
+                );
+            }
+        }
 
         return $cart;
-    }
-
-    public function find_matching_product_variation_id($product_id, $attributes)
-    {
-        return ( new \WC_Product_Data_Store_CPT() )->find_matching_product_variation(
-            new \WC_Product($product_id),
-            $attributes
-        );
     }
 }
