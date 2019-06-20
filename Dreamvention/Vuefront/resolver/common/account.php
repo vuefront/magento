@@ -1,34 +1,36 @@
 <?php
 
+use \Magento\Framework\App\ObjectManager;
+
 class ResolverCommonAccount extends Resolver
 {
     public function login($args)
     {
-        $creds = array();
+        $objectManager =ObjectManager::getInstance();
 
-        $creds['user_login'] = $args["email"];
-        $creds['user_password'] = $args["password"];
-        $creds['remember'] = true;
-        $user = wp_signon($creds);
+        $customerModel = $objectManager->get('\Magento\Customer\Model\Customer');
+        $customerSession = $objectManager->get('\Magento\Customer\Model\Session');
+        $customerModel->setWebsiteId($this->store->getWebsiteId());
+        $customer = $customerModel->loadByEmail($args["email"]);
 
-        if (!is_wp_error($user)) {
-            global $current_user;
+        if ($customer->validatePassword($args["password"])) {
+            $customerSession->setCustomerAsLoggedIn($customer);
 
-            $current_user = $user;
-
-            return $this->get($current_user->ID);
+            return $this->get($customer->getId());
         } else {
-            $error = reset($user->errors);
-            throw new Exception($error[0]);
+            throw new Exception('Warning: No match for E-Mail Address and/or Password.');
         }
     }
 
     public function logout($args)
     {
-        wp_logout();
+        $objectManager =ObjectManager::getInstance();
+        $customerSession = $objectManager->get('\Magento\Customer\Model\Session');
+
+        $customerSession->logout();
 
         return array(
-            'status' => is_user_logged_in()
+            'status' => true
         );
     }
 
@@ -36,135 +38,134 @@ class ResolverCommonAccount extends Resolver
     {
         $customer = $args['customer'];
 
-        $userdata = array(
-            'user_pass' => $customer['password'],
-            'user_login' => $customer['email'],
-            'user_email' => $customer['email'],
-            'first_name' => $customer['firstName'],
-            'last_name' => $customer['lastName']
-        );
+        $objectManager =ObjectManager::getInstance();
+        try {
+            $customerFactory = $objectManager->get('\Magento\Customer\Model\CustomerFactory');
+            $newCustomer = $customerFactory->create();
 
-        $user_id = wp_insert_user($userdata);
-        if (!is_wp_error($user_id)) {
-            return $this->get($user_id);
-        } else {
-            $error = reset($user_id->errors);
-            throw new Exception($error[0]);
+            $newCustomer->setWebsiteId($this->store->getWebsiteId());
+            $newCustomer->setEmail($customer['email']);
+            $newCustomer->setFirstname($customer['firstName']);
+            $newCustomer->setLastname($customer['lastName']);
+            $newCustomer->setPassword($customer['password']);
+            $newCustomer->save();
+
+            return $this->get($newCustomer->getId());
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
         }
     }
 
     public function edit($args)
     {
-        global $current_user;
+        $customerData = $args['customer'];
 
-        return $this->get($current_user->ID);
+        $objectManager =ObjectManager::getInstance();
+
+        $customerSession = $objectManager->get('\Magento\Customer\Model\Session');
+
+        $customer = $customerSession->getCustomer();
+
+        $customer->setEmail($customerData['email']);
+        $customer->setFirstname($customerData['firstName']);
+        $customer->setLastname($customerData['lastName']);
+
+        $customer->save();
+
+        return $this->get($customer->getId());
     }
 
     public function editPassword($args)
     {
-        global $current_user;
+        $objectManager =ObjectManager::getInstance();
 
-        return $this->get($current_user->ID);
+        $customerSession = $objectManager->get('\Magento\Customer\Model\Session');
+
+        $customer = $customerSession->getCustomer();
+
+        $customer->setPassword($args['password']);
+
+        $customer->save();
+
+        return $this->get($customer->getId());
     }
 
     public function get($user_id)
     {
-        $user = get_user_by('ID', $user_id);
+        $objectManager =ObjectManager::getInstance();
+
+        $customerFactory = $objectManager->get('\Magento\Customer\Api\CustomerRepositoryInterfaceFactory');
+        $customerRepository = $customerFactory->create();
+        $customer = $customerRepository->getById($user_id);
 
         return array(
-            'id' => $user->ID,
-            'email' => $user->user_email,
-            'firstName' => get_user_meta($user->ID, 'first_name', true),
-            'lastName' => get_user_meta($user->ID, 'last_name', true),
+            'id' => $customer->getId(),
+            'email' => $customer->getEmail(),
+            'firstName' => $customer->getFirstname(),
+            'lastName' => $customer->getLastname(),
         );
     }
 
     public function isLogged($args)
     {
-        // $customer = array();
+        $objectManager =ObjectManager::getInstance();
 
-        // if (is_user_logged_in()) {
-        //     $user = wp_get_current_user();
+        $customerSession = $objectManager->get('\Magento\Customer\Model\Session');
 
-        //     $customer = array(
-        //         'id' => $user->ID,
-        //         'email' => $user->user_email,
-        //         'firstName' => $user->user_firstname,
-        //         'lastName' => $user->user_lasttname
-        //     );
-        // }
+        $customer = array();
+
+        if ($customerSession->isLoggedIn()) {
+            $customer = $this->get($customerSession->getCustomerId());
+        }
 
         return array(
-            'status' => false,
-            'customer' => array()
-            // 'status' => is_user_logged_in(),
-            // 'customer' => $customer
+            'status' => $customerSession->isLoggedIn(),
+            'customer' => $customer
         );
     }
 
     public function address($args)
     {
-        $address = array();
+        $this->load->model('common/address');
 
-        global $current_user;
+        $result = $this->model_common_address->getAddress($args['id']);
 
-        switch ($args['id']) {
-            case 'billing':
-                $address = array(
-                    'id' => 'billing',
-                    'firstName' => get_user_meta($current_user->ID, 'billing_first_name', true),
-                    'lastName' => get_user_meta($current_user->ID, 'billing_last_name', true),
-                    'company' => get_user_meta($current_user->ID, 'billing_company', true),
-                    'address1' => get_user_meta($current_user->ID, 'billing_address_1', true),
-                    'address2' => get_user_meta($current_user->ID, 'billing_address_2', true),
-                    'zoneId' => '',
-                    'zone' => array(
-                        'id' => '',
-                        'name' => ''
-                    ),
-                    'country' => $this->load->resolver('common/country/get', array(
-                        'id' => get_user_meta($current_user->ID, 'billing_country', true)
-                    )),
-                    'countryId' => get_user_meta($current_user->ID, 'billing_country', true),
-                    'city' => get_user_meta($current_user->ID, 'billing_city', true),
-                    'zipcode' => get_user_meta($current_user->ID, 'billing_postcode', true)
-                );
-                break;
-            case 'shipping':
-                $address = array(
-                    'id' => 'shipping',
-                    'firstName' => get_user_meta($current_user->ID, 'shipping_first_name', true),
-                    'lastName' => get_user_meta($current_user->ID, 'shipping_last_name', true),
-                    'company' => get_user_meta($current_user->ID, 'shipping_company', true),
-                    'address1' => get_user_meta($current_user->ID, 'shipping_address_1', true),
-                    'address2' => get_user_meta($current_user->ID, 'shipping_address_2', true),
-                    'zoneId' => '',
-                    'zone' => array(
-                        'id' => '',
-                        'name' => ''
-                    ),
-                    'country' => $this->load->resolver('common/country/get', array(
-                        'id' => get_user_meta($current_user->ID, 'shipping_country', true)
-                    )),
-                    'countryId' => get_user_meta($current_user->ID, 'shipping_country', true),
-                    'city' => get_user_meta($current_user->ID, 'shipping_city', true),
-                    'zipcode' => get_user_meta($current_user->ID, 'shipping_postcode', true)
-                );
-                break;
-        }
-
-        return $address;
+        return array(
+            'id' => $args['id'],
+            'firstName' => $result['firstname'],
+            'lastName' => $result['lastname'],
+            'company' => $result['company'],
+            'address1' => $result['street'],
+            'address2' => '',
+            'zoneId' => $result['region_id'],
+            'zone' => $this->load->resolver('common/zone/get', array(
+                'id' => $result['region_id']
+            )),
+            'country' => $this->load->resolver('common/country/get', array(
+                'id' => $result['country_id']
+            )),
+            'countryId' => $result['country_id'],
+            'city' => $result['city'],
+            'zipcode' => $result['postcode']
+        );
     }
 
     public function addressList($args)
     {
+        $this->load->model('common/address');
 
-        $ids = array('billing', 'shipping');
+        $objectManager =ObjectManager::getInstance();
+
+        $customerSession = $objectManager->get('\Magento\Customer\Model\Session');
+
+        $customer = $customerSession->getCustomer();
 
         $address = array();
 
-        foreach ($ids as $value) {
-            $address[] = $this->address(array('id' => $value));
+        $result = $this->model_common_address->getAddresses($customer->getId());
+
+        foreach ($result as $value) {
+            $address[] = $this->address(array('id' => $value['address_id']));
         }
 
         return $address;
@@ -172,33 +173,31 @@ class ResolverCommonAccount extends Resolver
 
     public function editAddress($args)
     {
-        global $current_user;
-
-        $prefix = $args['id'];
-
-        $data = array(
-            'firstName' => '_first_name',
-            'lastName' => '_last_name',
-            'company' => '_company',
-            'address1' => '_address_1',
-            'address2' => '_address_2',
-            'countryId' => '_country',
-            'city' => '_city',
-            'zipcode' => '_postcode'
-        );
-
-        foreach ($data as $key => $value) {
-            update_user_meta($current_user->ID, $prefix.$value, $args['address'][$key]);
-        }
+        $this->load->model('common/address');
+        $this->model_common_address->editAddress($args['id'], $args['address']);
 
         return $this->address($args);
     }
 
-    public function addAddress($args) {
-        throw new Exception('Adding an address is not possible in Wordpress');
+    public function addAddress($args)
+    {
+        $objectManager = ObjectManager::getInstance();
+
+        $customerSession = $objectManager->get('\Magento\Customer\Model\Session');
+
+        $this->load->model('common/address');
+        $address_id = $this->model_common_address->addAddress($customerSession->getCustomerId(), $args['address']);
+
+        return $this->address(array('id' => $address_id));
     }
 
-    public function removeAddress($args) {
-        throw new Exception('Removing an address is not possible in Wordpress');
+    public function removeAddress($args)
+    {
+        $objectManager = ObjectManager::getInstance();
+
+        $addressRepository = $objectManager->get('\Magento\Customer\Api\AddressRepositoryInterface');
+        $addressRepository->deleteById($args['id']);
+
+        return $this->addressList($args);
     }
 }

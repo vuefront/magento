@@ -6,22 +6,45 @@ class ResolverCommonCountry extends Resolver
 
     public function get($args)
     {
-        $country_info = WC()->countries->countries[$args['id']];
+        $this->load->model('common/country');
+
+        $country_info = $this->model_common_country->getCountry($args['id']);
+
+        if(!$country_info) {
+            return array();
+        }
+
         return array(
-            'id' => $args['id'],
-            'name' => $country_info
+           'id' => $args['id'],
+           'name' => $country_info['name']
         );
     }
 
     public function getList($args)
     {
+        $this->load->model('common/country');
         $countries = [];
 
-        $results = WC()->countries->countries;
-        $country_total = count($results);
+        $filter_data = array(
+            'sort' => $args['sort'],
+            'order'   => $args['order']
+        );
 
-        foreach ($results as $key => $value) {
-            $countries[] = $this->get(array( 'id' => $key ));
+        if ($args['size'] != - 1) {
+            $filter_data['start'] = ($args['page'] - 1) * $args['size'];
+            $filter_data['limit'] = $args['size'];
+        }
+
+        if (!empty($args['search'])) {
+            $filter_data['filter_name'] = $args['search'];
+        }
+
+
+        $results = $this->model_common_country->getCountries($filter_data);
+        $country_total = $this->model_common_country->getTotalCountries($filter_data);
+
+        foreach ($results as $value) {
+            $countries[] = $this->get(array( 'id' => $value['country_id'] ));
         }
 
         return array(
