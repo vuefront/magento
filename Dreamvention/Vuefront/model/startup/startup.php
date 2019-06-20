@@ -1,4 +1,18 @@
 <?php
+use GraphQL\Error\ClientAware;
+
+class MySafeException extends \Exception implements ClientAware
+{
+    public function isClientSafe()
+    {
+        return true;
+    }
+
+    public function getCategory()
+    {
+        return 'businessLogic';
+    }
+}
 
 class ModelStartupStartup extends Model
 {
@@ -9,7 +23,11 @@ class ModelStartupStartup extends Model
         foreach ($mapping as $key => $value) {
             $that = $this;
             $result[$key] = function($root, $args, $context) use ($value, $that) {
-                return $that->load->resolver($value, $args);
+                try {
+                    return $that->load->resolver($value, $args);
+                } catch (Exception $e) {
+                    throw new MySafeException($e->getMessage());
+                }
             };
         }
 

@@ -9,6 +9,16 @@ class Store {
     public function getStoreId() {
        return $this->storeManager->getStore()->getId();
     }
+    public function getWebsiteId() {
+       return $this->storeManager->getStore()->getWebsiteId();
+    }
+
+    public function getName() {
+       return $this->storeManager->getStore()->getName();
+    }
+    public function getFormattedAddress() {
+       return $this->storeManager->getStore()->getFormattedAddress();
+    }
 
     public function getCurrencyCode() {
        return $this->storeManager->getStore()->getCurrentCurrency()->getCode();

@@ -41,7 +41,6 @@ class Action {
 		} else {
 			return new \Exception('Error: Could not call ' . $this->route . '/' . $this->method . '!');
 		}
-		
 		$reflection = new ReflectionClass($class);
 		
 		if ($reflection->hasMethod($this->method) && $reflection->getMethod($this->method)->getNumberOfRequiredParameters() <= count($args)) {
