@@ -16,9 +16,9 @@ class Image
         $this->_directory = $this->_filesystem->getDirectoryWrite(DirectoryList::MEDIA);
     }
  
-    public function resize($imageName,$width = 258,$height = 200)
+    public function resize($imageName,$width = 258,$height = 200, $prefix='catalog/product')
     {
-        $realPath = $this->_filesystem->getDirectoryRead(DirectoryList::MEDIA)->getAbsolutePath('catalog/product'.$imageName);
+        $realPath = $this->_filesystem->getDirectoryRead(DirectoryList::MEDIA)->getAbsolutePath($prefix.$imageName);
         if (!$this->_directory->isFile($realPath) || !$this->_directory->isExist($realPath)) {
             return false;
         }
@@ -46,12 +46,12 @@ class Image
         }
         
         if ($this->_directory->isFile($this->_directory->getRelativePath($dest))) {
-            return $this->storeManager->getStore()->getBaseUrl(UrlInterface::URL_TYPE_MEDIA).'resized/'.$width.'x'.$height.'/catalog/product'.$imageName;
+            return $this->storeManager->getStore()->getBaseUrl(UrlInterface::URL_TYPE_MEDIA).'resized/'.$width.'x'.$height.'/'.$prefix.$imageName;
         }
         return false;
     }
 
-    public function getUrl($imagePath) {
-        return $this->storeManager->getStore()->getBaseUrl(UrlInterface::URL_TYPE_MEDIA) . 'catalog/product' . $imagePath;
+    public function getUrl($imagePath, $prefix = 'catalog/product') {
+        return $this->storeManager->getStore()->getBaseUrl(UrlInterface::URL_TYPE_MEDIA) . $prefix . $imagePath;
     }
 }

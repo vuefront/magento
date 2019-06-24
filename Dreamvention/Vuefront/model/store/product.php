@@ -142,8 +142,7 @@ class ModelStoreProduct extends Model
     {
         $sql = "SELECT rating_summary
             FROM `".$this->db->getTableName('review_entity_summary')."`
-            WHERE entity_pk_value = '".$product_id."' and store_id='".$this->store->getStoreId()."';
-        ";
+            WHERE entity_pk_value = '".$product_id."' and store_id='".$this->store->getStoreId()."'";
         $result = $this->db->fetchOne($sql);
 
         $rating = 0;
@@ -262,7 +261,7 @@ class ModelStoreProduct extends Model
 
     public function getProducts($data = array())
     {
-        $sql = "SELECT p.entity_id as product_id, p.entity_id as sort_order, p.sku as model, p.created_at as date_added, ps.value as special
+        $sql = "SELECT p.entity_id as product_id, p.entity_id as sort_order, p.sku as model, p.created_at as date_added, ps.value as special, pp.value as price, pn.value as name, r.rating_summary as rating
             FROM `".$this->db->getTableName('catalog_product_entity')."` p 
             LEFT JOIN `".$this->db->getTableName('catalog_product_entity_decimal')."` ps on
                 p.entity_id = ps.entity_id
@@ -274,6 +273,17 @@ class ModelStoreProduct extends Model
                     WHERE
                         entity_type_id = 4
                     AND attribute_code = 'special_price' 
+                )
+            LEFT JOIN `".$this->db->getTableName('catalog_product_entity_decimal')."` pp on
+                p.entity_id = pp.entity_id
+                AND pp.attribute_id = (
+                    SELECT
+                        attribute_id
+                    FROM
+                        `".$this->db->getTableName('eav_attribute')."`
+                    WHERE
+                        entity_type_id = 4
+                    AND attribute_code = 'price' 
                 )
             LEFT JOIN `".$this->db->getTableName('catalog_product_entity_int')."` pv on
                 p.entity_id = pv.entity_id
@@ -297,6 +307,8 @@ class ModelStoreProduct extends Model
                         entity_type_id = 4
                     AND attribute_code = 'name' 
                 ) 
+            LEFT JOIN `".$this->db->getTableName('review_entity_summary')."` r
+            ON r.entity_pk_value = p.entity_id and r.store_id='".$this->store->getStoreId()."'
             LEFT JOIN `".$this->db->getTableName('catalog_product_entity_text')."` pd on
                 p.entity_id = pd.entity_id
                 AND pd.attribute_id = (
@@ -339,6 +351,7 @@ class ModelStoreProduct extends Model
 
         $sort_data = array(
             'product_id',
+            'name',
             'price',
             'special',
             'rating',

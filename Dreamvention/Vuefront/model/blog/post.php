@@ -1,118 +1,95 @@
 <?php
 
-class ModelBlogPost extends Model {
+class ModelBlogPost extends Model
+{
+    public function getPost($post_id)
+    {
+        $sql = "SELECT p.*
+            FROM `".$this->db->getTableName('magefan_blog_post')."` p
+            WHERE p.post_id = '".$post_id."'";
 
-	public function getPost( $post_id ) {
-		global $wpdb;
+        $result = $this->db->fetchOne($sql);
 
-		$sql = "SELECT 
-		  p.ID,
-		  p.`post_title` AS title,
-		  p.`post_content` AS description,
-		  p.`post_excerpt` AS shortDescription,
-		  (SELECT `meta_value` FROM `wp_postmeta` WHERE `post_id` = p.`ID` AND `meta_key` = '_thumbnail_id') AS image_id
-		FROM 
-		  `wp_posts` p 
-		WHERE p.`post_type` = 'post' 
-		  AND p.`post_status` = 'publish' and p.`ID` = '" . (int) $post_id . "'";
+        return $result;
+    }
 
-		$sql .= " GROUP BY p.ID";
+    public function getPosts($data = array())
+    {
+        $sql = "SELECT p.post_id as ID
+            FROM `".$this->db->getTableName('magefan_blog_post')."` p";
 
-		$result = $wpdb->get_row( $sql );
+        $implode = array();
 
-		return $result;
-	}
+        if (!empty($data['filter_category_id'])) {
+            $implode[] = "'" . (int) $data['filter_category_id'] . "' IN (
+                SELECT pc.category_id
+                FROM `".$this->db->getTableName('magefan_blog_post_category')."` pc
+                WHERE pc.post_id = p.post_id
+            )";
+        }
 
-	public function getPosts( $data = array() ) {
-		global $wpdb;
+        if (count($implode) > 0) {
+            $sql .= ' WHERE ' . implode(' AND ', $implode);
+        }
 
-		$sql = "SELECT 
-		  p.ID
-		FROM 
-		  `wp_posts` p 
-		WHERE p.`post_type` = 'post' 
-		  AND p.`post_status` = 'publish'";
+        $sql .= " GROUP BY ID";
 
-		$implode = array();
+        $sort_data = array(
+            'ID'
+        );
 
-		if ( isset( $data['filter_category_id'] ) ) {
-			$implode[] = "'" . (int) $data['filter_category_id'] . "' IN (SELECT 
-			    tt.`term_id` 
-			  FROM
-			    `wp_term_relationships` tr 
-			    LEFT JOIN `wp_term_taxonomy` tt 
-			      ON tr.`term_taxonomy_id` = tt.`term_taxonomy_id` 
-			  WHERE tt.`taxonomy` = 'category' 
-			    AND tr.`object_id` = p.`ID`)";
-		}
+        if (isset($data['sort']) && in_array($data['sort'], $sort_data)) {
+            $sql .= " ORDER BY " . $data['sort'];
+        } else {
+            $sql .= " ORDER BY ID";
+        }
 
-		if ( count( $implode ) > 0 ) {
-			$sql .= ' AND ' . implode( ' AND ', $implode );
-		}
+        if (isset($data['order']) && ($data['order'] == 'DESC')) {
+            $sql .= " DESC";
+        } else {
+            $sql .= " ASC";
+        }
 
-		$sql .= " GROUP BY ID";
+        if (isset($data['start']) || isset($data['limit'])) {
+            if ($data['start'] < 0) {
+                $data['start'] = 0;
+            }
 
-		$sort_data = array(
-			'ID'
-		);
+            if ($data['limit'] < 1) {
+                $data['limit'] = 20;
+            }
 
-		if ( isset( $data['sort'] ) && in_array( $data['sort'], $sort_data ) ) {
-			$sql .= " ORDER BY " . $data['sort'];
-		} else {
-			$sql .= " ORDER BY ID";
-		}
+            $sql .= " LIMIT " . (int) $data['start'] . "," . (int) $data['limit'];
+        }
 
-		if ( isset( $data['order'] ) && ( $data['order'] == 'DESC' ) ) {
-			$sql .= " DESC";
-		} else {
-			$sql .= " ASC";
-		}
+        $results = $this->db->fetchAll($sql);
 
-		if ( isset( $data['start'] ) || isset( $data['limit'] ) ) {
-			if ( $data['start'] < 0 ) {
-				$data['start'] = 0;
-			}
+        return $results;
+    }
 
-			if ( $data['limit'] < 1 ) {
-				$data['limit'] = 20;
-			}
+    public function getTotalPosts($data = array())
+    {
+        global $wpdb;
 
-			$sql .= " LIMIT " . (int) $data['start'] . "," . (int) $data['limit'];
-		}
+        $sql = "SELECT count(*) as total
+            FROM `".$this->db->getTableName('magefan_blog_post')."` p";
 
-		$results = $wpdb->get_results( $sql );
+        $implode = array();
 
-		return $results;
-	}
+        if (!empty($data['filter_category_id'])) {
+            $implode[] = "'" . (int) $data['filter_category_id'] . "' IN (
+                SELECT pc.category_id
+                FROM `".$this->db->getTableName('magefan_blog_post_category')."` pc
+                WHERE pc.post_id = p.post_id
+            )";
+        }
 
-	public function getTotalPosts( $data = array() ) {
-		global $wpdb;
+        if (count($implode) > 0) {
+            $sql .= ' WHERE ' . implode(' AND ', $implode);
+        }
 
-		$sql = "SELECT count(*) as total 
-		FROM 
-		  `wp_posts` p 
-		WHERE p.`post_type` = 'post' 
-		  AND p.`post_status` = 'publish'";
+        $result = $this->db->fetchOne($sql);
 
-		$implode = array();
-
-		if ( isset( $data['filter_category_id'] ) ) {
-			$implode[] = "'" . (int) $data['filter_category_id'] . "' IN (SELECT 
-			    tt.`term_id` 
-			  FROM
-			    `wp_term_relationships` tr 
-			    LEFT JOIN `wp_term_taxonomy` tt 
-			      ON tr.`term_taxonomy_id` = tt.`term_taxonomy_id` 
-			  WHERE tt.`taxonomy` = 'category' 
-			    AND tr.`object_id` = p.`ID`)";
-		}
-
-		if ( count( $implode ) > 0 ) {
-			$sql .= ' AND ' . implode( ' AND ', $implode );
-		}
-
-		$result = $wpdb->get_row( $sql );
-
-		return $result->total;
-	}
+        return $result['total'];
+    }
 }

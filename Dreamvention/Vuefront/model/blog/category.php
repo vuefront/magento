@@ -1,109 +1,92 @@
 <?php
 
-class ModelBlogCategory extends Model {
+class ModelBlogCategory extends Model
+{
+    public function getCategory($category_id)
+    {
+        $sql = "SELECT c.*, IFNULL(SUBSTRING_INDEX(c.path, '/', -1), 0) as parent_id
+            FROM `".$this->db->getTableName('magefan_blog_category')."` c
+            left join `".$this->db->getTableName('magefan_blog_category_store')."` cs on c.category_id = cs.category_id
+            where c.is_active = '1' and c.`category_id` = '" . (int) $category_id . "'";
 
-	public function getCategory( $category_id ) {
-		global $wpdb;
+        $sql .= " GROUP BY c.category_id";
 
-		$sql = "SELECT 
-            t.`term_id` AS 'ID',
-            t.`name`,
-            tt.`parent`,
-            tt.`description`
-        FROM
-            `wp_terms` t 
-            LEFT JOIN `wp_term_taxonomy` tt 
-            ON tt.`term_id` = t.`term_id` 
-        WHERE tt.`taxonomy` = 'category' and t.`term_id` = '" . (int) $category_id . "'";
+        $result = $this->db->fetchOne($sql);
 
-		$sql .= " GROUP BY t.term_id";
+        return $result;
+    }
 
-		$result = $wpdb->get_row( $sql );
+    public function getCategories($data = array())
+    {
+        $sql = "SELECT c.category_id as ID
+            FROM `".$this->db->getTableName('magefan_blog_category')."` c
+            left join `".$this->db->getTableName('magefan_blog_category_store')."` cs on c.category_id = cs.category_id
+            where c.is_active = '1'";
 
-		return $result;
-	}
+        $implode = array();
 
-	public function getCategories( $data = array() ) {
-		global $wpdb;
+        if (isset($data['filter_parent_id'])) {
+            $implode[] = "IFNULL(SUBSTRING_INDEX(c.path, '/', -1), 0) = '" . (int) $data['filter_parent_id'] . "'";
+        }
 
-		$sql = "SELECT 
-            t.`term_id` AS 'ID',
-            t.`name`,
-            tt.`parent`,
-            tt.`description`
-        FROM
-            `wp_terms` t 
-            LEFT JOIN `wp_term_taxonomy` tt 
-            ON tt.`term_id` = t.`term_id` 
-        WHERE tt.`taxonomy` = 'category'";
+        if (count($implode) > 0) {
+            $sql .= ' AND ' . implode(' AND ', $implode);
+        }
 
-		$implode = array();
+        $sql .= " GROUP BY c.category_id";
 
-		if ( isset( $data['filter_parent_id'] ) ) {
-			$implode[] = "tt.parent = '" . (int) $data['filter_parent_id'] . "'";
-		}
+        $sort_data = array(
+            'ID'
+        );
 
-		if ( count( $implode ) > 0 ) {
-			$sql .= ' AND ' . implode( ' AND ', $implode );
-		}
+        if (isset($data['sort']) && in_array($data['sort'], $sort_data)) {
+            $sql .= " ORDER BY " . $data['sort'];
+        } else {
+            $sql .= " ORDER BY ID";
+        }
 
-		$sql .= " GROUP BY t.term_id";
+        if (isset($data['order']) && ($data['order'] == 'DESC')) {
+            $sql .= " DESC";
+        } else {
+            $sql .= " ASC";
+        }
 
-		$sort_data = array(
-			'ID'
-		);
+        if (isset($data['start']) || isset($data['limit'])) {
+            if ($data['start'] < 0) {
+                $data['start'] = 0;
+            }
 
-		if ( isset( $data['sort'] ) && in_array( $data['sort'], $sort_data ) ) {
-			$sql .= " ORDER BY " . $data['sort'];
-		} else {
-			$sql .= " ORDER BY ID";
-		}
+            if ($data['limit'] < 1) {
+                $data['limit'] = 20;
+            }
 
-		if ( isset( $data['order'] ) && ( $data['order'] == 'DESC' ) ) {
-			$sql .= " DESC";
-		} else {
-			$sql .= " ASC";
-		}
+            $sql .= " LIMIT " . (int) $data['start'] . "," . (int) $data['limit'];
+        }
+        
+        $results = $this->db->fetchAll($sql);
 
-		if ( isset( $data['start'] ) || isset( $data['limit'] ) ) {
-			if ( $data['start'] < 0 ) {
-				$data['start'] = 0;
-			}
+        return $results;
+    }
 
-			if ( $data['limit'] < 1 ) {
-				$data['limit'] = 20;
-			}
+    public function getTotalCategories($data = array())
+    {
+        $sql = "SELECT count(*) as total
+            FROM `".$this->db->getTableName('magefan_blog_category')."` c
+            left join `".$this->db->getTableName('magefan_blog_category_store')."` cs on c.category_id = cs.category_id
+            where c.is_active = '1'";
 
-			$sql .= " LIMIT " . (int) $data['start'] . "," . (int) $data['limit'];
-		}
+        $implode = array();
 
-		$results = $wpdb->get_results( $sql );
+        if (isset($data['filter_parent_id'])) {
+            $implode[] = "IFNULL(SUBSTRING_INDEX(c.path, '/', -1), 0) = '" . (int) $data['filter_parent_id'] . "'";
+        }
 
-		return $results;
-	}
+        if (count($implode) > 0) {
+            $sql .= ' AND ' . implode(' AND ', $implode);
+        }
 
-	public function getTotalCategories( $data = array() ) {
-		global $wpdb;
+        $result = $this->db->fetchOne($sql);
 
-		$sql = "SELECT count(*) as total 
-        FROM
-            `wp_terms` t 
-            LEFT JOIN `wp_term_taxonomy` tt 
-            ON tt.`term_id` = t.`term_id` 
-        WHERE tt.`taxonomy` = 'category'";
-
-		$implode = array();
-
-		if ( isset( $data['filter_parent_id'] ) ) {
-			$implode[] = "tt.parent = '" . (int) $data['filter_parent_id'] . "'";
-		}
-
-		if ( count( $implode ) > 0 ) {
-			$sql .= ' AND ' . implode( ' AND ', $implode );
-		}
-
-		$result = $wpdb->get_row( $sql );
-
-		return $result->total;
-	}
+        return $result['total'];
+    }
 }
