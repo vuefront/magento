@@ -1,6 +1,6 @@
 <?php
 
-namespace Dreamvention\Vuefront\Block\Adminhtml\System\Config\Form;
+namespace Dreamvention\Vuefront\Module\Block\Adminhtml\System\Config\Form;
 
 use Magento\Framework\View\Result\PageFactory;
 use Magento\Store\Model\ScopeInterface;
@@ -38,8 +38,8 @@ class Api extends \Magento\Config\Block\System\Config\Form\Field
             <div class="image-wrapper" style="text-align: center;">
                 <img src="' . $logo . '" alt="" style="width:200px;">
             </div>
-            <div class="input-wrapper" style="max-width: 50%; margin: 0 auto;">
-                <input type="text" value=" ' . $url . 'vuefront/index/index" readonly class="input-text">
+            <div style="padding:10px;background-color:#f8f8f8;border:1px solid #ddd;margin-bottom:7px;">
+                Url for access to API: <a href="' . $url . 'rest/V1/vuefront/graphql" target="_blank">' . $url . 'rest/V1/vuefront/graphql</a>
             </div>
         </div>';
 
