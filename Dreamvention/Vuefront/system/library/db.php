@@ -1,15 +1,35 @@
 <?php
+
 use \Magento\Framework\App\ObjectManager;
 
 class DB
 {
     private $connection;
     private $resource;
+    private $entity_types;
     public function __construct()
     {
-        $objectManager  = ObjectManager::getInstance();
+        $objectManager = ObjectManager::getInstance();
         $this->resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
         $this->connection = $this->resource->getConnection();
+    }
+
+    public function init()
+    {
+        $result = $this->fetchAll("SELECT entity_type_id as id, entity_type_code as code FROM `".$this->getTableName('eav_entity_type')."`");
+        $this->entity_types = array();
+
+        foreach ($result as $value) {
+            $this->entity_types[$value['code']] = $value['id'];
+        }
+    }
+
+    public function getEntityType($code) {
+        if(!empty($this->entity_types[$code])){
+            return $this->entity_types[$code];
+        }
+
+        return false;
     }
 
     public function getTableName($name)

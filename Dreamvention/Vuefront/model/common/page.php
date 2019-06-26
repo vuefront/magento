@@ -5,7 +5,7 @@ class ModelCommonPage extends Model
     public function getPage($page_id)
     {
 
-        $sql = "SELECT * FROM `".$this->db->getTableName('cms_page')."` WHERE page_id = '".$page_id."'";
+        $sql = "SELECT * FROM `" . $this->db->getTableName('cms_page') . "` WHERE page_id = '" . $page_id . "'";
 
         $result = $this->db->fetchOne($sql);
 
@@ -14,13 +14,13 @@ class ModelCommonPage extends Model
 
     public function getPages($data = array())
     {
-        $sql = "SELECT p.page_id FROM `".$this->db->getTableName('cms_page')."` p LEFT JOIN `".$this->db->getTableName('cms_page_store')."` ps ON ps.page_id = p.page_id WHERE ps.store_id IN ('".$this->store->getStoreId()."', '0')";
-        
+        $sql = "SELECT p.page_id FROM `" . $this->db->getTableName('cms_page') . "` p LEFT JOIN `" . $this->db->getTableName('cms_page_store') . "` ps ON ps.page_id = p.page_id WHERE ps.store_id IN ('" . $this->store->getStoreId() . "', '0')";
+
         $implode = array();
 
         if (!empty($data['filter_search'])) {
-            $implode[] = "(p.title LIKE '%".$data['filter_search']."%' 
-            OR p.content LIKE '%".$data['filter_search']."%')";
+            $implode[] = "(p.title LIKE '%" . $data['filter_search'] . "%' 
+            OR p.content LIKE '%" . $data['filter_search'] . "%')";
         }
 
         if (count($implode) > 0) {
@@ -56,7 +56,7 @@ class ModelCommonPage extends Model
                 $data['limit'] = 20;
             }
 
-            $sql .= " LIMIT " . (int) $data['start'] . "," . (int) $data['limit'];
+            $sql .= " LIMIT " . (int)$data['start'] . "," . (int)$data['limit'];
         }
 
         $results = $this->db->fetchAll($sql);
@@ -66,13 +66,13 @@ class ModelCommonPage extends Model
 
     public function getTotalPages($data = array())
     {
-        $sql = "SELECT count(*) as total FROM `".$this->db->getTableName('cms_page')."` p LEFT JOIN `".$this->db->getTableName('cms_page_store')."` ps ON ps.page_id = p.page_id WHERE ps.store_id IN ('".$this->store->getStoreId()."', '0')";
-        
+        $sql = "SELECT count(*) as total FROM `" . $this->db->getTableName('cms_page') . "` p LEFT JOIN `" . $this->db->getTableName('cms_page_store') . "` ps ON ps.page_id = p.page_id WHERE ps.store_id IN ('" . $this->store->getStoreId() . "', '0')";
+
         $implode = array();
 
         if (!empty($data['filter_search'])) {
-            $implode[] = "(p.title LIKE '%".$data['filter_search']."%' 
-            OR p.content LIKE '%".$data['filter_search']."%')";
+            $implode[] = "(p.title LIKE '%" . $data['filter_search'] . "%' 
+            OR p.content LIKE '%" . $data['filter_search'] . "%')";
         }
 
         if (count($implode) > 0) {

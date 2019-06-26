@@ -92,29 +92,29 @@ class ModelStoreProduct extends Model
             select cpe.sku, eas.entity_type_id, cpe.entity_id 
                     FROM `".$this->db->getTableName('catalog_product_entity')."` AS cpe, eav_attribute_set AS eas
                     WHERE cpe.attribute_set_id=eas.attribute_set_id) AS ce
-            LEFT JOIN eav_attribute AS ea
+            LEFT JOIN `".$this->db->getTableName('eav_attribute')."` AS ea
                 ON ce.entity_type_id = ea.entity_type_id and ea.is_user_defined = 1
-            LEFT JOIN catalog_product_entity_varchar AS ce_varchar
+            LEFT JOIN `".$this->db->getTableName('catalog_product_entity_varchar')."` AS ce_varchar
                 ON ce.entity_id = ce_varchar.entity_id
                 AND ea.attribute_id = ce_varchar.attribute_id
                 AND ea.backend_type = 'varchar'
                 AND ce_varchar.value IS NOT NULL
-            LEFT JOIN catalog_product_entity_int AS ce_int
+            LEFT JOIN `".$this->db->getTableName('catalog_product_entity_int')."` AS ce_int
                 ON ce.entity_id = ce_int.entity_id
                 AND ea.attribute_id = ce_int.attribute_id
                 AND ea.backend_type = 'int'
                 AND ce_int.value IS NOT NULL
-            LEFT JOIN catalog_product_entity_text AS ce_text
+            LEFT JOIN `".$this->db->getTableName('catalog_product_entity_text')."` AS ce_text
                 ON ce.entity_id = ce_text.entity_id
                 AND ea.attribute_id = ce_text.attribute_id
                 AND ea.backend_type = 'text'
                 AND ce_text.value IS NOT NULL
-            LEFT JOIN catalog_product_entity_decimal AS ce_decimal
+            LEFT JOIN `".$this->db->getTableName('catalog_product_entity_decimal')."` AS ce_decimal
                 ON ce.entity_id = ce_decimal.entity_id
                 AND ea.attribute_id = ce_decimal.attribute_id
                 AND ea.backend_type = 'decimal'
                 AND ce_decimal.value IS NOT NULL
-            LEFT JOIN catalog_product_entity_datetime AS ce_datetime
+            LEFT JOIN `".$this->db->getTableName('catalog_product_entity_datetime')."` AS ce_datetime
                 ON ce.entity_id = ce_datetime.entity_id
                 AND ea.attribute_id = ce_datetime.attribute_id
                 AND ea.backend_type = 'datetime'
@@ -166,29 +166,29 @@ class ModelStoreProduct extends Model
             k.qty as quantity,
             (
                 SELECT value 
-                FROM catalog_product_entity_varchar
+                FROM `".$this->db->getTableName('catalog_product_entity_varchar')."`
                 WHERE entity_id = p.entity_id AND attribute_id = (
                     SELECT attribute_id 
-                    FROM eav_attribute
-                    WHERE entity_type_id=4 AND attribute_code='name'
+                    FROM `".$this->db->getTableName('eav_attribute')."`
+                    WHERE entity_type_id='".$this->db->getEntityType('catalog_product')."' AND attribute_code='name'
                 )
             ) as name,
             (
                 SELECT value 
-                FROM catalog_product_entity_text
+                FROM `".$this->db->getTableName('catalog_product_entity_text')."`
                 WHERE entity_id = p.entity_id AND attribute_id = (
                     SELECT attribute_id 
-                    FROM eav_attribute
+                    FROM `".$this->db->getTableName('eav_attribute')."`
                     WHERE entity_type_id=4 AND attribute_code='description'
                 )
             ) as description,
             (
                 SELECT value 
-                FROM catalog_product_entity_varchar
+                FROM `".$this->db->getTableName('catalog_product_entity_varchar')."`
                 WHERE entity_id = p.entity_id AND attribute_id = (
                     SELECT attribute_id 
-                    FROM eav_attribute
-                    WHERE entity_type_id=4 AND attribute_code='short_description'
+                    FROM `".$this->db->getTableName('eav_attribute')."`
+                    WHERE entity_type_id='".$this->db->getEntityType('catalog_product')."' AND attribute_code='short_description'
                 )
             ) as short_description,
             (
@@ -197,59 +197,59 @@ class ModelStoreProduct extends Model
                 WHERE entity_id = p.entity_id AND attribute_id = (
                     SELECT attribute_id 
                     FROM eav_attribute
-                    WHERE entity_type_id=4 AND attribute_code='thumbnail'
+                    WHERE entity_type_id='".$this->db->getEntityType('catalog_product')."' AND attribute_code='thumbnail'
                 )
             ) as thumbnail,
             (
                 SELECT value 
-                FROM catalog_product_entity_varchar
+                FROM `".$this->db->getTableName('catalog_product_entity_varchar')."`
                 WHERE entity_id = p.entity_id AND attribute_id = (
                     SELECT attribute_id 
-                    FROM eav_attribute
-                    WHERE entity_type_id=4 AND attribute_code='image'
+                    FROM `".$this->db->getTableName('eav_attribute')."`
+                    WHERE entity_type_id='".$this->db->getEntityType('catalog_product')."' AND attribute_code='image'
                 )
             ) as image,
             (
                 SELECT value 
-                FROM catalog_product_entity_varchar
+                FROM `".$this->db->getTableName('catalog_product_entity_varchar')."`
                 WHERE entity_id = p.entity_id AND attribute_id = (
                     SELECT attribute_id 
-                    FROM eav_attribute
+                    FROM `".$this->db->getTableName('eav_attribute')."`
                     WHERE entity_type_id=4 AND attribute_code='small_image'
                 )
             ) as small_image,
             (
                 SELECT value 
-                FROM catalog_product_entity_decimal
+                FROM `".$this->db->getTableName('catalog_product_entity_decimal')."`
                 WHERE entity_id = p.entity_id AND attribute_id = (
                     SELECT attribute_id 
-                    FROM eav_attribute
-                    WHERE entity_type_id=4 AND attribute_code='price'
+                    FROM `".$this->db->getTableName('eav_attribute')."`
+                    WHERE entity_type_id='".$this->db->getEntityType('catalog_product')."' AND attribute_code='price'
                 )
             ) as price,
             (
                 SELECT value 
-                FROM catalog_product_entity_decimal
+                FROM `".$this->db->getTableName('catalog_product_entity_decimal')."`
                 WHERE entity_id = p.entity_id AND attribute_id = (
                     SELECT attribute_id 
-                    FROM eav_attribute
-                    WHERE entity_type_id=4 AND attribute_code='special_price'
+                    FROM `".$this->db->getTableName('eav_attribute')."`
+                    WHERE entity_type_id='".$this->db->getEntityType('catalog_product')."' AND attribute_code='special_price'
                 )
             ) as special_price,
             (
                 SELECT
                     value
                 FROM
-                    catalog_product_entity_varchar
+                    `".$this->db->getTableName('catalog_product_entity_varchar')."`
                 WHERE
                     entity_id = p.entity_id
                     AND attribute_id = (
                         SELECT
                             attribute_id
                         FROM
-                            eav_attribute
+                            `".$this->db->getTableName('eav_attribute')."`
                         WHERE
-                            entity_type_id = 4
+                            entity_type_id = '".$this->db->getEntityType('catalog_product')."'
                             AND attribute_code = 'url_key' 
                     )
             ) as keyword
@@ -271,7 +271,7 @@ class ModelStoreProduct extends Model
                     FROM
                         `".$this->db->getTableName('eav_attribute')."`
                     WHERE
-                        entity_type_id = 4
+                        entity_type_id = '".$this->db->getEntityType('catalog_product')."'
                     AND attribute_code = 'special_price' 
                 )
             LEFT JOIN `".$this->db->getTableName('catalog_product_entity_decimal')."` pp on
@@ -293,7 +293,7 @@ class ModelStoreProduct extends Model
                     FROM
                         `".$this->db->getTableName('eav_attribute')."`
                     WHERE
-                        entity_type_id = 4
+                        entity_type_id = '".$this->db->getEntityType('catalog_product')."'
                         AND attribute_code = 'visibility' 
                 )
             LEFT JOIN `".$this->db->getTableName('catalog_product_entity_varchar')."` pn on
@@ -304,7 +304,7 @@ class ModelStoreProduct extends Model
                     FROM
                     `".$this->db->getTableName('eav_attribute')."`
                     WHERE
-                        entity_type_id = 4
+                        entity_type_id = '".$this->db->getEntityType('catalog_product')."'
                     AND attribute_code = 'name' 
                 ) 
             LEFT JOIN `".$this->db->getTableName('review_entity_summary')."` r
@@ -317,7 +317,7 @@ class ModelStoreProduct extends Model
                     FROM
                     `".$this->db->getTableName('eav_attribute')."`
                     WHERE
-                        entity_type_id = 4
+                        entity_type_id = '".$this->db->getEntityType('catalog_product')."'
                     AND attribute_code = 'description' 
                 ) where pv.value >1 ";
         
@@ -399,7 +399,7 @@ class ModelStoreProduct extends Model
                     FROM
                         `".$this->db->getTableName('eav_attribute')."`
                     WHERE
-                        entity_type_id = 4
+                        entity_type_id = '".$this->db->getEntityType('catalog_product')."'
                     AND attribute_code = 'special_price' 
                 )
             LEFT JOIN `".$this->db->getTableName('catalog_product_entity_int')."` pv on
@@ -410,7 +410,7 @@ class ModelStoreProduct extends Model
                     FROM
                         `".$this->db->getTableName('eav_attribute')."`
                     WHERE
-                        entity_type_id = 4
+                        entity_type_id = '".$this->db->getEntityType('catalog_product')."'
                         AND attribute_code = 'visibility' 
                 )
             LEFT JOIN `".$this->db->getTableName('catalog_product_entity_varchar')."` pn on
@@ -421,7 +421,7 @@ class ModelStoreProduct extends Model
                     FROM
                     `".$this->db->getTableName('eav_attribute')."`
                     WHERE
-                        entity_type_id = 4
+                        entity_type_id = '".$this->db->getEntityType('catalog_product')."'
                     AND attribute_code = 'name' 
                 ) 
             LEFT JOIN `".$this->db->getTableName('catalog_product_entity_text')."` pd on
@@ -432,7 +432,7 @@ class ModelStoreProduct extends Model
                     FROM
                     `".$this->db->getTableName('eav_attribute')."`
                     WHERE
-                        entity_type_id = 4
+                        entity_type_id = '".$this->db->getEntityType('catalog_product')."'
                     AND attribute_code = 'description' 
                 ) where pv.value > 1 ";
         $implode = array();

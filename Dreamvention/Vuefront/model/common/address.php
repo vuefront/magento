@@ -53,7 +53,7 @@ class ModelCommonAddress extends Model
     public function getAddress($address_id)
     {
         $sql = "SELECT entity_id as address_id,city, company, country_id, firstname, lastname,postcode, region_id, street
-            FROM customer_address_entity
+            FROM `".$this->db->getTableName('customer_address_entity')."`
             where entity_id = '".$address_id."'";
 
         $results = $this->db->fetchOne($sql);
@@ -64,7 +64,7 @@ class ModelCommonAddress extends Model
     public function getAddresses($customer_id, $data = array())
     {
         $sql = "SELECT entity_id as address_id,city, company, country_id, firstname, lastname,postcode, region_id, street
-            FROM customer_address_entity where parent_id = '".$customer_id."'";
+            FROM `".$this->db->getTableName('customer_address_entity')."` where parent_id = '".$customer_id."'";
 
         $sort_data = array(
             'entity_id',
@@ -103,7 +103,7 @@ class ModelCommonAddress extends Model
     public function getTotalAddresses($customer_id, $data)
     {
         $sql = "SELECT count(*) as total
-            FROM customer_address_entity where parent_id = '".$customer_id."'";
+            FROM `".$this->db->getTableName('customer_address_entity')."` where parent_id = '".$customer_id."'";
 
         $results = $this->db->fetchOne($sql);
 
