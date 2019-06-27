@@ -1,8 +1,8 @@
 <?php
 
-namespace Dreamvention\Vuefront\Module\Model;
+namespace Vuefront\Vuefront\Module\Model;
 
-use \Dreamvention\Vuefront\Module\Api\GraphqlInterface;
+use \Vuefront\Vuefront\Module\Api\GraphqlInterface;
 use Magento\Framework\App\Action\Context;
 
 require_once realpath(__DIR__ . '/../../system/startup.php');

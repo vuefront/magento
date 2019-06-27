@@ -1,5 +1,5 @@
 {
-  "name": "dreamvention/vuefront",
+  "name": "vuefront/vuefront",
   "description": "Vuefront api for magento2",
   "require": {
     "webonyx/graphql-php": "0.11.6"
@@ -11,7 +11,7 @@
       "registration.php"
     ],
     "psr-4": {
-      "Dreamvention\\Vuefront\\": ""
+      "Vuefront\\Vuefront\\": ""
     }
   }
 }

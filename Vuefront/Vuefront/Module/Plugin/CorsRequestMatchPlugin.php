@@ -1,6 +1,6 @@
 <?php
 
-namespace Dreamvention\Vuefront\Module\Plugin;
+namespace Vuefront\Vuefront\Module\Plugin;
 
 use Magento\Framework\Webapi\Rest\Request;
 use Magento\Webapi\Controller\Rest\Router;
@@ -47,7 +47,7 @@ class CorsRequestMatchPlugin
             '/V1/vuefront/cors'
         );
 
-        $route->setServiceClass('Dreamvention\Vuefront\Module\Api\GraphqlInterface')
+        $route->setServiceClass('Vuefront\Vuefront\Module\Api\GraphqlInterface')
             ->setServiceMethod('cors')
             ->setSecure(false)
             ->setAclResources(['anonymous'])

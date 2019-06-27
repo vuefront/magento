@@ -1,6 +1,6 @@
 <?php
 
-namespace Dreamvention\Vuefront\Module\Api;
+namespace Vuefront\Vuefront\Module\Api;
 interface GraphqlInterface
 {
     /**

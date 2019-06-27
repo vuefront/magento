@@ -1,6 +1,6 @@
 <?php
 
-namespace Dreamvention\Vuefront\Module\Plugin;
+namespace Vuefront\Vuefront\Module\Plugin;
 
 use Magento\Framework\Webapi\Request;
 use Magento\Framework\Exception\InputException;
