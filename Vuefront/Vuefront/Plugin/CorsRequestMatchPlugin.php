@@ -47,7 +47,7 @@ class CorsRequestMatchPlugin
             '/V1/vuefront/cors'
         );
 
-        $route->setServiceClass('Vuefront\Vuefront\Module\Api\GraphqlInterface')
+        $route->setServiceClass('Vuefront\Vuefront\Api\GraphqlInterface')
             ->setServiceMethod('cors')
             ->setSecure(false)
             ->setAclResources(['anonymous'])
