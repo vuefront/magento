@@ -4,7 +4,7 @@
   "type": "magento2-module",
   "version": "0.1.0",
   "require": {
-    "webonyx/graphql-php": "0.11.6"
+    "webonyx/graphql-php": "0.12.6"
   },
   "autoload": {
     "files": [
