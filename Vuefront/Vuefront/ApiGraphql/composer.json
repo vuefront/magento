@@ -1,9 +1,0 @@
-{
-  "name": "vuefront_api",
-  "description": "Vuefront api",
-  "require": {
-    "webonyx/graphql-php": "0.11.6"
-  },
-  "type": "magento2-module",
-  "version": "0.1.0"
-}

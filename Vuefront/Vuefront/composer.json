@@ -1,9 +1,11 @@
 {
   "name": "vuefront/vuefront",
   "description": "Vuefront api for magento2",
-  "require": {},
   "type": "magento2-module",
   "version": "0.1.0",
+  "require": {
+    "webonyx/graphql-php": "0.11.6"
+  },
   "autoload": {
     "files": [
       "registration.php"

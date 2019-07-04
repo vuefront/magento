@@ -1,6 +1,4 @@
 <?php
-require_once VF_DIR.'vendor/autoload.php';
-
 use GraphQL\Error\ClientAware;
 
 require_once VF_SYSTEM_DIR.'engine/model.php';

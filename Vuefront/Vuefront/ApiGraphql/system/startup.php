@@ -1,7 +1,6 @@
 <?php
 define('DIR_PLUGIN', realpath(__DIR__.'/../').'/');
 
-require_once(DIR_PLUGIN . 'vendor/autoload.php');
 require_once(DIR_PLUGIN . 'system/engine/action.php');
 require_once(DIR_PLUGIN . 'system/engine/actionType.php');
 require_once(DIR_PLUGIN . 'system/engine/type.php');

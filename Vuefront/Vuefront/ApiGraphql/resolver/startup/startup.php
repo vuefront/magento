@@ -1,5 +1,4 @@
 <?php
-require_once VF_DIR.'vendor/autoload.php';
 require_once VF_SYSTEM_DIR.'engine/resolver.php';
 
 use GraphQL\GraphQL;
