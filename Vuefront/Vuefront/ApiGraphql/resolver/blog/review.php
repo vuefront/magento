@@ -40,8 +40,8 @@ class ResolverBlogReview extends Resolver
                 \Magefan\Blog\Model\Config\Source\AuthorType::CUSTOMER
             );
         } elseif ($this->getConfigValue(
-             \Magefan\Blog\Helper\Config::GUEST_COMMENT,
-             \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+            \Magefan\Blog\Helper\Config::GUEST_COMMENT,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
         )) {
             $comment->setCustomerId(0)->setAuthorType(
                 \Magefan\Blog\Model\Config\Source\AuthorType::GUEST
@@ -74,7 +74,10 @@ class ResolverBlogReview extends Resolver
             );
         }
 
-        return $comments;
+        return array(
+            'content'=> $comments,
+            'totalElements'=> $count($comments)
+        );
     }
 
     public function getConfigValue($path)
