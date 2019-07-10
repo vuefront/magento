@@ -91,4 +91,17 @@ class ModelBlogCategory extends Model
 
         return $result['total'];
     }
+
+    public function getCategoryByPostId($post_id)
+    {
+        $sql = "SELECT c.category_id
+            FROM `".$this->db->getTableName('magefan_blog_category')."` c
+            left join `".$this->db->getTableName('magefan_blog_category_store')."` cs on c.category_id = cs.category_id
+            left join `".$this->db->getTableName('magefan_blog_post_category')."` pc on pc.category_id = c.category_id
+            where c.is_active = '1' AND pc.post_id = '".$post_id."'";
+
+        $results = $this->db->fetchAll($sql);
+
+        return $results;
+    }
 }

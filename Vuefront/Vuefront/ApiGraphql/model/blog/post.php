@@ -71,8 +71,6 @@ class ModelBlogPost extends Model
 
     public function getTotalPosts($data = array())
     {
-        global $wpdb;
-
         $sql = "SELECT count(*) as total
             FROM `".$this->db->getTableName('magefan_blog_post')."` p";
 
@@ -93,5 +91,29 @@ class ModelBlogPost extends Model
         $result = $this->db->fetchOne($sql);
 
         return $result['total'];
+    }
+
+    public function getNextPost($post_id)
+    {
+        $sql = "SELECT p.*
+            FROM `".$this->db->getTableName('magefan_blog_post')."` p
+            WHERE p.post_id > '".$post_id."'
+            ORDER BY p.publish_time ASC";
+
+        $result = $this->db->fetchOne($sql);
+
+        return $result;
+    }
+
+    public function getPrevPost($post_id)
+    {
+        $sql = "SELECT p.*
+            FROM `".$this->db->getTableName('magefan_blog_post')."` p
+            WHERE p.post_id < '".$post_id."'
+            ORDER BY p.post_id DESC";
+
+        $result = $this->db->fetchOne($sql);
+
+        return $result;
     }
 }

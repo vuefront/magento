@@ -23,6 +23,7 @@ class ResolverStoreCurrency extends Resolver
 
             $currencies[] = array(
                 'title'        => $allCurrencies[$code][1] ?: $code,
+                'name'         => $allCurrencies[$code][1] ?: $code,
                 'code'         => $code,
                 'symbol_left'  => $objectManager->create('Magento\Framework\Locale\CurrencyInterface')->getCurrency($code)->getSymbol(),
                 'symbol_right' => '',
