@@ -76,7 +76,7 @@ class ResolverBlogReview extends Resolver
 
         return array(
             'content'=> $comments,
-            'totalElements'=> $count($comments)
+            'totalElements'=> count($comments)
         );
     }
 
