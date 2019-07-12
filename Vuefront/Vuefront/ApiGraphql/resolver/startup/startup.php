@@ -1,16 +1,19 @@
 <?php
-require_once VF_SYSTEM_DIR.'engine/resolver.php';
+require_once VF_SYSTEM_DIR . 'engine/resolver.php';
 
 use GraphQL\GraphQL;
 use GraphQL\Utils\BuildSchema;
+use GraphQL\Utils\AST;
+use GraphQL\Language\Parser;
 
 class ResolverStartupStartup extends Resolver
 {
-    public function index()
+    public function index($input)
     {
         // ob_start();
-        if (! empty($_GET['cors'])) {
-            if (! empty($_SERVER['HTTP_ORIGIN'])) {
+
+        if (!empty($_GET['cors'])) {
+            if (!empty($_SERVER['HTTP_ORIGIN'])) {
                 header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
             } else {
                 header('Access-Control-Allow-Origin: *');
@@ -21,12 +24,19 @@ class ResolverStartupStartup extends Resolver
         }
 
         $this->load->model('startup/startup');
-        
+
         try {
+
             $resolvers = $this->model_startup_startup->getResolvers();
-            $schema = BuildSchema::build(file_get_contents(DIR_PLUGIN.'schema.graphql'));
-            $rawInput = file_get_contents('php://input');
-            $input = json_decode($rawInput, true);
+            $cacheFilename = DIR_PLUGIN . 'cached_schema.php';
+            if (!file_exists($cacheFilename)) {
+                $document = Parser::parse(file_get_contents(DIR_PLUGIN . 'schema.graphql'));
+                file_put_contents($cacheFilename, "<?php\nreturn " . var_export(AST::toArray($document), true) . ";\n");
+            } else {
+                $document = AST::fromArray(require $cacheFilename);
+            }
+
+            $schema = BuildSchema::build($document);
             $query = $input['query'];
 
             $variableValues = isset($input['variables']) ? $input['variables'] : null;
@@ -40,7 +50,7 @@ class ResolverStartupStartup extends Resolver
         }
 
         // ob_clean();
-    
+
         echo json_encode($result);
 
     }

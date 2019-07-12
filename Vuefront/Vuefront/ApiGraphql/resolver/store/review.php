@@ -3,13 +3,26 @@
 use \Magento\Framework\App\ObjectManager;
 use \Magento\Review\Model\Review;
 
-require_once VF_SYSTEM_DIR.'engine/resolver.php';
+require_once VF_SYSTEM_DIR . 'engine/resolver.php';
 
+/**
+ * @property Magento\Review\Model\Rating $_ratingFactory
+ */
 class ResolverStoreReview extends Resolver
 {
+    private $_ratingFactory;
+
+    public function __construct($registry)
+    {
+        parent::__construct($registry);
+        $objectManager = ObjectManager::getInstance();
+
+        $this->_ratingFactory = $objectManager->get('Magento\Review\Model\Rating');
+    }
+
     public function add($args)
     {
-        $objectManager =ObjectManager::getInstance();
+        $objectManager = ObjectManager::getInstance();
 
         $reviewFactory = $objectManager->get('Magento\Review\Model\ReviewFactory');
         $ratingFactory = $objectManager->get('Magento\Review\Model\RatingFactory');
@@ -41,19 +54,31 @@ class ResolverStoreReview extends Resolver
 
     public function get($data)
     {
+        $this->load->model('store/review');
+        /** @var $product Magento\Catalog\Model\Product */
         $product = $data['product'];
-
-        $result = $this->model_store_product->getProductReview($product->getId());
+        /** @var $collection \Magento\Review\Model\ResourceModel\Review\Collection */
+        $collection = $this->model_store_review->getReviews($product->getId());
 
         $comments = array();
 
-        foreach ($result as $comment) {
+        /** @var \Magento\Review\Model\Review $comment */
+        foreach ($collection->getItems() as $comment) {
+            $avg = 0;
+            if (count($comment->getRatingVotes())) {
+                $ratings = array();
+                foreach ($comment->getRatingVotes() as $rating) {
+                    $ratings[] = $rating->getPercent();
+                }
+                $avg = array_sum($ratings) / count($ratings);
+            }
+
             $comments[] = array(
-                'author'       => $comment['author'],
+                'author' => $comment->getData('nickname'),
                 'author_email' => '',
-                'created_at'   => $comment['date_added'],
-                'content'      => $comment['content'],
-                'rating'       => (float)$comment['rating']
+                'created_at' => $comment->getData('created_at'),
+                'content' => $comment->getData('detail'),
+                'rating' => (float)$avg * 5 / 100
             );
         }
 

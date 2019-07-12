@@ -21,6 +21,7 @@ class GraphqlModel implements GraphqlInterface
         \Magento\Framework\Webapi\Rest\Response $response,
         \Magento\Framework\Webapi\Rest\Request $request
     ) {
+
         $this->scopeConfig = $scopeConfig;
         $this->context = $context;
         $this->response = $response;
@@ -56,7 +57,9 @@ class GraphqlModel implements GraphqlInterface
         $enable = $this->scopeConfig->getValue('vuefront/general/enable', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
 
         if ($enable) {
-            start();
+
+            start($this->request->getBodyParams());
+
             exit;
 
         } else {

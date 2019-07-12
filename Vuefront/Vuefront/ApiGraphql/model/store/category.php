@@ -56,7 +56,7 @@ class ModelStoreCategory extends Model
         if (isset($data['sort']) && in_array($data['sort'], array_keys($sort_data))) {
             $sort = $sort_data[$data['sort']];
         } else {
-            $sort = "entity_id";
+            $sort = "position";
         }
 
         $collection->setOrder($sort, $order);

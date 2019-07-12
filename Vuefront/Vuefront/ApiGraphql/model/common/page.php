@@ -56,7 +56,7 @@ class ModelCommonPage extends Model
         if (isset($data['sort']) && in_array($data['sort'], array_keys($sort_data))) {
             $sort = $sort_data[$data['sort']];
         } else {
-            $sort = "page_id";
+            $sort = "sort_order";
         }
 
         $collection->setOrder($sort, $order);

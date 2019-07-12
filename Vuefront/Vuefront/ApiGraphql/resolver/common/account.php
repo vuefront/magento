@@ -2,23 +2,39 @@
 
 use \Magento\Framework\App\ObjectManager;
 
-require_once VF_SYSTEM_DIR.'engine/resolver.php';
+require_once VF_SYSTEM_DIR . 'engine/resolver.php';
 
+/**
+ * @property \Magento\Customer\Model\Customer $_customer
+ * @property \Magento\Customer\Model\CustomerFactory $_customerFactory
+ * @property \Magento\Customer\Model\Session $_sessionFactory
+ */
 class ResolverCommonAccount extends Resolver
 {
+    private $_customerFactory;
+    private $_sessionFactory;
+
+    public function __construct($registry)
+    {
+        parent::__construct($registry);
+        $this->load->model('common/address');
+
+        $objectManager = ObjectManager::getInstance();
+
+        $this->_customer = $objectManager->get('\Magento\Customer\Model\Customer');
+        $this->_customerFactory = $objectManager->get('\Magento\Customer\Model\CustomerFactory');
+        $this->_sessionFactory = $objectManager->get('\Magento\Customer\Model\Session');
+    }
+
     public function login($args)
     {
-        $objectManager =ObjectManager::getInstance();
-
-        $customerModel = $objectManager->get('\Magento\Customer\Model\Customer');
-        $customerSession = $objectManager->get('\Magento\Customer\Model\Session');
-        $customerModel->setWebsiteId($this->store->getWebsiteId());
-        $customer = $customerModel->loadByEmail($args["email"]);
+        $this->_customer->setWebsiteId($this->store->getWebsiteId());
+        $customer = $this->_customer->loadByEmail($args["email"]);
 
         if ($customer->validatePassword($args["password"])) {
-            $customerSession->setCustomerAsLoggedIn($customer);
+            $this->_sessionFactory->setCustomerAsLoggedIn($customer);
 
-            return $this->get($customer->getId());
+            return $this->get($customer);
         } else {
             throw new Exception('Warning: No match for E-Mail Address and/or Password.');
         }
@@ -26,10 +42,7 @@ class ResolverCommonAccount extends Resolver
 
     public function logout($args)
     {
-        $objectManager =ObjectManager::getInstance();
-        $customerSession = $objectManager->get('\Magento\Customer\Model\Session');
-
-        $customerSession->logout();
+        $this->_sessionFactory->logout();
 
         return array(
             'status' => true
@@ -40,10 +53,8 @@ class ResolverCommonAccount extends Resolver
     {
         $customer = $args['customer'];
 
-        $objectManager =ObjectManager::getInstance();
         try {
-            $customerFactory = $objectManager->get('\Magento\Customer\Model\CustomerFactory');
-            $newCustomer = $customerFactory->create();
+            $newCustomer = $this->_customerFactory->create();
 
             $newCustomer->setWebsiteId($this->store->getWebsiteId());
             $newCustomer->setEmail($customer['email']);
@@ -52,7 +63,7 @@ class ResolverCommonAccount extends Resolver
             $newCustomer->setPassword($customer['password']);
             $newCustomer->save();
 
-            return $this->get($newCustomer->getId());
+            return $this->get($newCustomer);
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }
@@ -62,11 +73,8 @@ class ResolverCommonAccount extends Resolver
     {
         $customerData = $args['customer'];
 
-        $objectManager =ObjectManager::getInstance();
-
-        $customerSession = $objectManager->get('\Magento\Customer\Model\Session');
-
-        $customer = $customerSession->getCustomer();
+        /** @var Magento\Customer\Model\Customer $customer */
+        $customer = $this->_sessionFactory->getCustomer();
 
         $customer->setEmail($customerData['email']);
         $customer->setFirstname($customerData['firstName']);
@@ -74,16 +82,13 @@ class ResolverCommonAccount extends Resolver
 
         $customer->save();
 
-        return $this->get($customer->getId());
+        return $this->get($customer);
     }
 
     public function editPassword($args)
     {
-        $objectManager =ObjectManager::getInstance();
-
-        $customerSession = $objectManager->get('\Magento\Customer\Model\Session');
-
-        $customer = $customerSession->getCustomer();
+        /** @var Magento\Customer\Model\Customer $customer */
+        $customer = $this->_sessionFactory->getCustomer();
 
         $customer->setPassword($args['password']);
 
@@ -92,14 +97,11 @@ class ResolverCommonAccount extends Resolver
         return $this->get($customer->getId());
     }
 
-    public function get($user_id)
+    /**
+     * @param Magento\Customer\Model\Customer $customer
+     */
+    public function get($customer)
     {
-        $objectManager =ObjectManager::getInstance();
-
-        $customerFactory = $objectManager->get('\Magento\Customer\Api\CustomerRepositoryInterfaceFactory');
-        $customerRepository = $customerFactory->create();
-        $customer = $customerRepository->getById($user_id);
-
         return array(
             'id' => $customer->getId(),
             'email' => $customer->getEmail(),
@@ -110,18 +112,15 @@ class ResolverCommonAccount extends Resolver
 
     public function isLogged($args)
     {
-        $objectManager =ObjectManager::getInstance();
-
-        $customerSession = $objectManager->get('\Magento\Customer\Model\Session');
-
+        /** @var Magento\Customer\Model\Customer $customer */
         $customer = array();
 
-        if ($customerSession->isLoggedIn()) {
-            $customer = $this->get($customerSession->getCustomerId());
+        if ($this->_sessionFactory->isLoggedIn()) {
+            $customer = $this->get($this->_sessionFactory->getCustomer());
         }
 
         return array(
-            'status' => $customerSession->isLoggedIn(),
+            'status' => $this->_sessionFactory->isLoggedIn(),
             'customer' => $customer
         );
     }
@@ -130,25 +129,56 @@ class ResolverCommonAccount extends Resolver
     {
         $this->load->model('common/address');
 
-        $result = $this->model_common_address->getAddress($args['id']);
+        /** @var Magento\Customer\Model\Address $address */
+        if (!isset($args['address'])) {
+            $address = $this->model_common_address->getAddress($args['id']);
+        } else {
+            $address = $args['address'];
+        }
+
+        $that = $this;
 
         return array(
-            'id' => $args['id'],
-            'firstName' => $result['firstname'],
-            'lastName' => $result['lastname'],
-            'company' => $result['company'],
-            'address1' => $result['street'],
-            'address2' => '',
-            'zoneId' => $result['region_id'],
-            'zone' => $this->load->resolver('common/zone/get', array(
-                'id' => $result['region_id']
-            )),
-            'country' => $this->load->resolver('common/country/get', array(
-                'id' => $result['country_id']
-            )),
-            'countryId' => $result['country_id'],
-            'city' => $result['city'],
-            'zipcode' => $result['postcode']
+            'id' => function () use ($address) {
+                return $address->getId();
+            },
+            'firstName' => function () use ($address) {
+                return $address->getFirstname();
+            },
+            'lastName' => function () use ($address) {
+                return $address->getLastname();
+            },
+            'company' => function () use ($address) {
+                return $address->getCompany();
+            },
+            'address1' => function () use ($address) {
+                return $address->getStreetFull();
+            },
+            'address2' => function () use ($address) {
+                return '';
+            },
+            'zoneId' => function () use ($address) {
+                return $address->getRegionId();
+            },
+            'zone' => function () use ($address, $that) {
+                return $that->load->resolver('common/zone/get', array(
+                    'id' => $address->getRegionId()
+                ));
+            },
+            'countryId' => function () use ($address) {
+                return $address->getCountryId();
+            },
+            'country' => function () use ($address, $that) {
+                return $that->load->resolver('common/country/get', array(
+                    'id' => $address->getCountryId()
+                ));
+            },
+            'city' => function () use ($address) {
+                return $address->getCity();
+            },
+            'zipcode' => function () use ($address) {
+                return $address->getPostcode();
+            }
         );
     }
 
@@ -156,49 +186,34 @@ class ResolverCommonAccount extends Resolver
     {
         $this->load->model('common/address');
 
-        $objectManager =ObjectManager::getInstance();
-
-        $customerSession = $objectManager->get('\Magento\Customer\Model\Session');
-
-        $customer = $customerSession->getCustomer();
-
+        $results = $this->_sessionFactory->getCustomer()->getAddresses();
         $address = array();
-
-        $result = $this->model_common_address->getAddresses($customer->getId());
-
-        foreach ($result as $value) {
-            $address[] = $this->address(array('id' => $value['address_id']));
+        /** @var Magento\Customer\Model\Address $address */
+        foreach ($results as $value) {
+            $address[] = $this->address(array('address' => $value));
         }
-
         return $address;
     }
 
     public function editAddress($args)
     {
         $this->load->model('common/address');
-        $this->model_common_address->editAddress($args['id'], $args['address']);
+        $address = $this->model_common_address->editAddress($args['id'], $args['address']);
 
-        return $this->address($args);
+        return $this->address(array('address' => $address));
     }
 
     public function addAddress($args)
     {
-        $objectManager = ObjectManager::getInstance();
 
-        $customerSession = $objectManager->get('\Magento\Customer\Model\Session');
+        $address = $this->model_common_address->addAddress($this->_sessionFactory->getCustomer(), $args['address']);
 
-        $this->load->model('common/address');
-        $address_id = $this->model_common_address->addAddress($customerSession->getCustomerId(), $args['address']);
-
-        return $this->address(array('id' => $address_id));
+        return $this->address(array('address' => $address));
     }
 
     public function removeAddress($args)
     {
-        $objectManager = ObjectManager::getInstance();
-
-        $addressRepository = $objectManager->get('\Magento\Customer\Api\AddressRepositoryInterface');
-        $addressRepository->deleteById($args['id']);
+        $this->model_common_address->deleteAddress($args['id']);
 
         return $this->addressList($args);
     }
