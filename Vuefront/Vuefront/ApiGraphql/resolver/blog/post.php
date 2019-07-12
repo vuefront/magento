@@ -1,6 +1,6 @@
 <?php
 
-require_once VF_SYSTEM_DIR.'engine/resolver.php';
+require_once VF_SYSTEM_DIR . 'engine/resolver.php';
 
 class ResolverBlogPost extends Resolver
 {
@@ -18,55 +18,75 @@ class ResolverBlogPost extends Resolver
     {
         if ($this->blog) {
             $this->load->model('blog/post');
-            $post = $this->model_blog_post->getPost($args['id']);
-
-            if ($post['featured_img']) {
-                $thumb     = $this->image->getUrl($post['featured_img'], '');
-                $thumbLazy = $this->image->resize($post['featured_img'], 10, 10, '');
+            /** @var $post Magefan\Blog\Model\Post */
+            if (!isset($args['post'])) {
+                $post = $this->model_blog_post->getPost($args['id']);
             } else {
-                $thumb = '';
-                $thumbLazy = '';
+                $post = $args['post'];
             }
 
-            $date_format = '%A %d %B %Y';
+            $that = $this;
 
             return array(
-                'id'               => $post['post_id'],
-                'name'            => $post['title'],
-                'title'            => $post['title'],
-                'shortDescription' => $post['short_content'],
-                'description'      => $post['content'],
-                'keyword'          => $post['identifier'],
-                'image'            => $thumb,
-                'imageLazy'        => $thumbLazy,
-                'rating'           => null,
-                'datePublished'    => iconv(
-                    mb_detect_encoding(strftime($date_format, strtotime($post['publish_time']))),
-                    "utf-8//IGNORE",
-                    strftime($date_format, strtotime($post['publish_time']))
-                ),
-                'categories' => function ($root, $args) {
-                    return $this->load->resolver('blog/post/categories', array(
+                'id' => function () use ($post) {
+                    return $post->getId();
+                },
+                'name' => function () use ($post) {
+                    return $post->getTitle();
+                },
+                'title' => function () use ($post) {
+                    return $post->getTitle();
+                },
+                'shortDescription' => function () use ($post) {
+                    return $post->getShortContent();
+                },
+                'description' => function () use ($post) {
+                    return $post->getContent();
+                },
+                'keyword' => function () use ($post) {
+                    return $post->getUrl();
+                },
+                'datePublished' => function () use ($post) {
+                    return $post->getPublishDate('l d F Y');
+                },
+                'rating' => null,
+                'image' => function () use ($post) {
+                    return $post->getFeaturedImage() ? $post->getFeaturedImage() : '';
+                },
+                'imageLazy' => function () use ($post, $that) {
+                    if ($post->getData('featured_img')) {
+                        $thumbLazy = $that->image->resize($post->getData('featured_img'), 10, 10, '');
+                    } else {
+                        $thumbLazy = '';
+                    }
+                    return $thumbLazy;
+                },
+                'categories' => function ($root, $args) use ($post, $that) {
+                    return $that->load->resolver('blog/post/categories', array(
                         'parent' => $root,
-                        'args' => $args
+                        'args' => $args,
+                        'post' => $post
                     ));
                 },
-                'next' => function ($root, $args) {
-                    return $this->load->resolver('blog/post/next', array(
+                'next' => function ($root, $args) use ($post, $that) {
+                    return $that->load->resolver('blog/post/next', array(
                         'parent' => $root,
-                        'args' => $args
+                        'args' => $args,
+                        'post' => $post
                     ));
                 },
-                'prev' => function ($root, $args) {
-                    return $this->load->resolver('blog/post/prev', array(
+                'prev' => function ($root, $args) use ($that, $post) {
+                    return $that->load->resolver('blog/post/prev', array(
                         'parent' => $root,
-                        'args' => $args
+                        'args' => $args,
+                        'post' => $post
                     ));
                 },
-                'reviews' => function ($root, $args) {
-                    return $this->load->resolver('blog/review/get', array(
+                'reviews' => function ($root, $args) use ($post, $that) {
+                    return $that->load->resolver('blog/review/get', array(
                         'parent' => $root,
-                        'args' => $args
+                        'args' => $args,
+                        'post' => $post
                     ));
                 }
             );
@@ -80,34 +100,34 @@ class ResolverBlogPost extends Resolver
         if ($this->blog) {
             $this->load->model('blog/post');
             $filter_data = array(
-            'limit' => $args['size'],
-            'start'         => ($args['page'] - 1) * $args['size'],
-            'sort'        => $args['sort'],
-            'order'          => $args['order']
-        );
+                'limit' => $args['size'],
+                'start' => ($args['page'] - 1) * $args['size'],
+                'sort' => $args['sort'],
+                'order' => $args['order']
+            );
 
             if ($args['category_id'] !== 0) {
                 $filter_data['filter_category_id'] = $args['category_id'];
             }
-        
-            $results = $this->model_blog_post->getPosts($filter_data);
-            $product_total = $this->model_blog_post->getTotalPosts($filter_data);
+            /** @var $collection \Magefan\Blog\Model\ResourceModel\Post\Collection */
+            $collection = $this->model_blog_post->getPosts($args);
+            $product_total = $collection->getSize();
 
             $posts = array();
 
-            foreach ($results as $post) {
-                $posts[] = $this->get(array( 'id' => $post['ID'] ));
+            foreach ($collection->getItems() as $post) {
+                $posts[] = $this->get(array('post' => $post));
             }
 
             return array(
-                'content'          => $posts,
-                'first'            => $args['page'] === 1,
-                'last'             => $args['page'] === ceil($product_total / $args['size']),
-                'number'           => (int) $args['page'],
+                'content' => $posts,
+                'first' => $args['page'] === 1,
+                'last' => $args['page'] === ceil($product_total / $args['size']),
+                'number' => (int)$args['page'],
                 'numberOfElements' => count($posts),
-                'size'             => (int) $args['size'],
-                'totalPages'       => (int) ceil($product_total / $args['size']),
-                'totalElements'    => (int) $product_total,
+                'size' => (int)$args['size'],
+                'totalPages' => (int)ceil($product_total / $args['size']),
+                'totalElements' => (int)$product_total,
             );
         } else {
             return array(
@@ -115,18 +135,20 @@ class ResolverBlogPost extends Resolver
             );
         }
     }
+
     public function categories($args)
     {
         if ($this->blog) {
-            $this->load->model('blog/category');
-            $post = $args['parent'];
+            /** @var $post Magefan\Blog\Model\Post */
+            $post = $args['post'];
 
-            $result = $this->model_blog_category->getCategoryByPostId($post['id']);
+            $collection = $post->getParentCategories();
+
             $categories = array();
-            foreach ($result as $category) {
-                $categories[] =$this->load->resolver(
+            foreach ($collection->getItems() as $category) {
+                $categories[] = $this->load->resolver(
                     'blog/category/get',
-                    array('id' => $category['category_id'])
+                    array('category' => $category)
                 );
             }
             return $categories;
@@ -140,12 +162,14 @@ class ResolverBlogPost extends Resolver
     {
         if ($this->blog) {
             $this->load->model('blog/post');
-            $post = $args['parent'];
-            $prev_post_info = $this->model_blog_post->getPrevPost($post['id']);
-            if (empty($prev_post_info)) {
+            /** @var $post Magefan\Blog\Model\Post */
+            $post = $args['post'];
+            /** @var $collection \Magefan\Blog\Model\ResourceModel\Post\Collection */
+            $collection = $this->model_blog_post->getPrevPost($post->getId());
+            if ($collection->getSize() == 0) {
                 return null;
             }
-            return $this->get(array('id' => $prev_post_info['post_id']));
+            return $this->get(array('post' => $collection->getFirstItem()));
         } else {
             return array();
         }
@@ -155,14 +179,14 @@ class ResolverBlogPost extends Resolver
     {
         if ($this->blog) {
             $this->load->model('blog/post');
-            $post = $args['parent'];
-
-
-            $next_post_info = $this->model_blog_post->getNextPost($post['id']);
-            if (empty($next_post_info)) {
+            /** @var $post Magefan\Blog\Model\Post */
+            $post = $args['post'];
+            /** @var $collection \Magefan\Blog\Model\ResourceModel\Post\Collection */
+            $collection = $this->model_blog_post->getNextPost($post->getId());
+            if ($collection->getSize() == 0) {
                 return null;
             }
-            return $this->get(array('id' => $next_post_info['post_id']));
+            return $this->get(array('post' => $collection->getFirstItem()));
         } else {
             return array();
         }

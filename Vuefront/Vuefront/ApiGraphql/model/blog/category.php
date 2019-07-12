@@ -1,107 +1,75 @@
 <?php
 
-require_once VF_SYSTEM_DIR.'engine/model.php';
+use \Magento\Framework\App\ObjectManager;
 
+require_once VF_SYSTEM_DIR . 'engine/model.php';
+
+/**
+ * @property \Magefan\Blog\Model\ResourceModel\Category\CollectionFactory $_collectionFactory
+ * @property Magefan\Blog\Model\CategoryFactory $_categoryFactory
+ */
 class ModelBlogCategory extends Model
 {
+    private $_collectionFactory;
+    private $_categoryFactory;
+
+    public function __construct($registry)
+    {
+        parent::__construct($registry);
+
+        $objectManager = ObjectManager::getInstance();
+        $this->_collectionFactory = $objectManager->get('\Magefan\Blog\Model\ResourceModel\Category\CollectionFactory');
+        $this->_categoryFactory = $objectManager->get('Magefan\Blog\Model\CategoryFactory');
+    }
+
     public function getCategory($category_id)
     {
-        $sql = "SELECT c.*, IFNULL(SUBSTRING_INDEX(c.path, '/', -1), 0) as parent_id
-            FROM `".$this->db->getTableName('magefan_blog_category')."` c
-            left join `".$this->db->getTableName('magefan_blog_category_store')."` cs on c.category_id = cs.category_id
-            where c.is_active = '1' and c.`category_id` = '" . (int) $category_id . "'";
-
-        $sql .= " GROUP BY c.category_id";
-
-        $result = $this->db->fetchOne($sql);
-
-        return $result;
+        return $this->_categoryFactory->create()->load($category_id);
     }
 
     public function getCategories($data = array())
     {
-        $sql = "SELECT c.category_id as ID
-            FROM `".$this->db->getTableName('magefan_blog_category')."` c
-            left join `".$this->db->getTableName('magefan_blog_category_store')."` cs on c.category_id = cs.category_id
-            where c.is_active = '1'";
+        /** @var $collection \Magefan\Blog\Model\ResourceModel\Category\Collection */
+        $collection = $this->_collectionFactory->create();
+        $collection->addActiveFilter();
+        $collection->addStoreFilter($this->store->getStoreId());
 
-        $implode = array();
-
-        if (isset($data['filter_parent_id'])) {
-            $implode[] = "IFNULL(SUBSTRING_INDEX(c.path, '/', -1), 0) = '" . (int) $data['filter_parent_id'] . "'";
+        if ($data['size'] != '-1') {
+            $collection->setPageSize($data['size']);
+            $collection->setCurPage($data['page']);
         }
 
-        if (count($implode) > 0) {
-            $sql .= ' AND ' . implode(' AND ', $implode);
-        }
+        if ($data['parent'] !== -1) {
+            if ($data['parent'] != 0) {
+                $collection->addFieldToFilter('category_id', ['in' => $this->_categoryFactory->create()->load($data['parent'])->getChildrenIds(false)]);
 
-        $sql .= " GROUP BY c.category_id";
-
-        $sort_data = array(
-            'ID'
-        );
-
-        if (isset($data['sort']) && in_array($data['sort'], $sort_data)) {
-            $sql .= " ORDER BY " . $data['sort'];
-        } else {
-            $sql .= " ORDER BY ID";
+            } else {
+                $collection->addFieldToFilter('path', array('null' => true));
+            }
         }
 
         if (isset($data['order']) && ($data['order'] == 'DESC')) {
-            $sql .= " DESC";
+            $order = "DESC";
         } else {
-            $sql .= " ASC";
+            $order = "ASC";
         }
 
-        if (isset($data['start']) || isset($data['limit'])) {
-            if ($data['start'] < 0) {
-                $data['start'] = 0;
-            }
+        $sort_data = array(
+            'id' => 'category_id',
+            'name' => 'title',
+            'sort_order' => 'position'
+        );
 
-            if ($data['limit'] < 1) {
-                $data['limit'] = 20;
-            }
-
-            $sql .= " LIMIT " . (int) $data['start'] . "," . (int) $data['limit'];
-        }
-        
-        $results = $this->db->fetchAll($sql);
-
-        return $results;
-    }
-
-    public function getTotalCategories($data = array())
-    {
-        $sql = "SELECT count(*) as total
-            FROM `".$this->db->getTableName('magefan_blog_category')."` c
-            left join `".$this->db->getTableName('magefan_blog_category_store')."` cs on c.category_id = cs.category_id
-            where c.is_active = '1'";
-
-        $implode = array();
-
-        if (isset($data['filter_parent_id'])) {
-            $implode[] = "IFNULL(SUBSTRING_INDEX(c.path, '/', -1), 0) = '" . (int) $data['filter_parent_id'] . "'";
+        if (isset($data['sort']) && in_array($data['sort'], array_keys($sort_data))) {
+            $sort = $sort_data[$data['sort']];
+        } else {
+            $sort = "category_id";
         }
 
-        if (count($implode) > 0) {
-            $sql .= ' AND ' . implode(' AND ', $implode);
-        }
+        $collection->setOrder($sort, $order);
 
-        $result = $this->db->fetchOne($sql);
+        $collection->load();
 
-        return $result['total'];
-    }
-
-    public function getCategoryByPostId($post_id)
-    {
-        $sql = "SELECT c.category_id
-            FROM `".$this->db->getTableName('magefan_blog_category')."` c
-            left join `".$this->db->getTableName('magefan_blog_category_store')."` cs on c.category_id = cs.category_id
-            left join `".$this->db->getTableName('magefan_blog_post_category')."` pc on pc.category_id = c.category_id
-            where c.is_active = '1' AND pc.post_id = '".$post_id."'";
-
-        $results = $this->db->fetchAll($sql);
-
-        return $results;
+        return $collection;
     }
 }

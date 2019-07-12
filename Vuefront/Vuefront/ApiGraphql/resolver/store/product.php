@@ -6,47 +6,110 @@ require_once VF_SYSTEM_DIR.'engine/resolver.php';
 
 class ResolverStoreProduct extends Resolver
 {
+    private $_currencyHelper;
+    private $_stockRegistry;
+    private $_reviewFactory;
+    private $_imageFactory;
+    private $_scopeConfig;
+    private $_suffix;
+    private $_session;
+    private $_customer = false;
+
     public function __construct($registry)
     {
         parent::__construct($registry);
 
         $this->load->model('store/product');
+        $objectManager =ObjectManager::getInstance();
+
+        $this->_currencyHelper = $objectManager->get('Magento\Framework\Pricing\Helper\Data');
+        $this->_stockRegistry = $objectManager->get('Magento\CatalogInventory\Api\StockRegistryInterface');
+        $this->_reviewFactory = $objectManager->get('Magento\Review\Model\Review');
+        $this->_imageFactory = $objectManager->get('\Magento\Catalog\Helper\ImageFactory');
+        $this->_scopeConfig = $objectManager->get('\Magento\Framework\App\Config\ScopeConfigInterface');
+        $this->_suffix = $this->_scopeConfig->getValue('catalog/seo/product_url_suffix');
+        $this->_session = $objectManager->get('\Magento\Customer\Model\Session');
+
+        if ($this->_session->isLoggedIn()) {
+            $this->_customer = $this->_session->getCustomer();
+        }
     }
 
     public function get($args)
     {
-        $product = $this->model_store_product->getProduct($args['id']);
-        $rating = $this->model_store_product->getProductRating($args['id']);
-
-        $objectManager =ObjectManager::getInstance();
-
-        if (!empty($product['thumbnail'])) {
-            $thumb = $this->image->getUrl($product['thumbnail']);
+        if (!isset($args['product'])) {
+            $product = $this->model_store_product->getProduct($args['id']);
         } else {
-            $thumb = '';
+            $product = $args['product'];
         }
-        if (!empty($product['image'])) {
-            $thumbBig = $this->image->getUrl($product['image']);
-        } else {
-            $thumbBig = '';
-        }
-        $currency = $objectManager->get('Magento\Framework\Pricing\Helper\Data');
-        $product_info = array(
-            'id'               => $product['product_id'],
-            'name'             => $product['name'],
-            'description'      => $product['description'],
-            'shortDescription' => $product['short_description'],
-            'price'            => $currency->currency($product['price'], true, false),
-            'special'          => $product['special_price'] ? $currency->currency($product['special_price'], true, false) : '',
-            'model'            => $product['model'],
-            'image'            => $thumb,
-            'imageBig'         => $thumbBig,
-            'imageLazy'        => function ($root, $args) use ($product) {
-                return !empty($product['thumbnail']) ? $this->image->resize($product['thumbnail'], 10, 10) : '';
+
+        $that = $this;
+        return array(
+            'id'               => function () use ($product) {
+                return $product->getId();
             },
-            'stock'            => $product['quantity'] > 0,
-            'rating'           => (float)$rating,
-            'keyword'          => $product['keyword'],
+            'name'               => function () use ($product) {
+                return $product->getName();
+            },
+            'description'        => function () use ($product) {
+                return $product->getDescription();
+            },
+            'shortDescription'        => function () use ($product) {
+                return $product->getshortDescription();
+            },
+            'price'               => function () use ($product) {
+                if ($product->getTypeId()!="simple") {
+                    return $this->_currencyHelper->currency($product->getFinalPrice(), true, false);
+                } else {
+                    return $this->_currencyHelper->currency($product->getPrice(), true, false);
+                }
+            },
+            'special'               => function () use ($product) {
+                $special = $product->getSpecialPrice();
+
+                if ($this->_customer) {
+                    $tierPrices = $product->getTierPrices();
+                    if (count($tierPrices) > 0) {
+                        foreach ($tierPrices as $tier) {
+                            if ($tier->getCustomerGroupId() == $this->_customer->getGroupId()) {
+                                $special = $tier->getValue();
+                            }
+                        }
+                    }
+                }
+
+                if (!empty($special)) {
+                    $special = $this->_currencyHelper->currency($special, true, false);
+                } else {
+                    $special = '';
+                }
+
+                return $special;
+            },
+            'model'               => function () use ($product) {
+                return $product->getSku();
+            },
+            'image' => function () use ($product, $that) {
+                return $product->getData('thumbnail') ? $that->image->getUrl($product->getData('thumbnail')) : '';
+            },
+            'imageBig' => function () use ($product, $that) {
+                return $product->getData('image') ? $that->image->getUrl($product->getData('image')) : '';
+                ;
+            },
+            'imageLazy'        => function () use ($product, $that) {
+                return $product->getData('thumbnail') ? $that->image->resize($product->getData('thumbnail'), 10, 10) : '';
+            },
+            'stock'            => function () use ($product) {
+                $stockItem = $this->_stockRegistry->getStockItem($product->getId());
+                return $stockItem->getQty() > 0;
+            },
+            'rating'           => function () use ($product) {
+                $this->_reviewFactory->getEntitySummary($product);
+                return $product->getRatingSummary()->getRatingSummary() * 5 / 100;
+            },
+            'keyword'          => function () use ($product) {
+                return !empty($product->getUrlKey()) ? $product->getUrlKey().$this->_suffix: "";
+            },
             'images' => function ($root, $args) use ($product) {
                 return $this->getImages(array(
                     'parent' => $root,
@@ -54,22 +117,25 @@ class ResolverStoreProduct extends Resolver
                     'product' => $product
                 ));
             },
-            'products' => function ($root, $args) {
-                return $this->getRelatedProducts(array(
+            'products' => function ($root, $args) use ($product, $that) {
+                return $that->getRelatedProducts(array(
                     'parent' => $root,
-                    'args' => $args
+                    'args' => $args,
+                    'product' => $product
                 ));
             },
-            'attributes' => function ($root, $args) {
-                return $this->getAttributes(array(
+            'attributes' => function ($root, $args) use ($product, $that) {
+                return $that->getAttributes(array(
                     'parent' => $root,
-                    'args' => $args
+                    'args' => $args,
+                    'product' => $product
                 ));
             },
-            'reviews' => function ($root, $args) {
-                return $this->load->resolver('store/review/get', array(
+            'reviews' => function ($root, $args) use ($product, $that) {
+                return $that->load->resolver('store/review/get', array(
                     'parent' => $root,
-                    'args' => $args
+                    'args' => $args,
+                    'product' => $product
                 ));
             },
             'options' => function ($root, $args) use ($product) {
@@ -80,46 +146,18 @@ class ResolverStoreProduct extends Resolver
                 ));
             }
         );
-        return $product_info;
     }
     public function getList($args)
     {
         $this->load->model('store/product');
-        $filter_data = array(
-            'sort'  => $args['sort'],
-            'order' => $args['order'],
-        );
 
-        if ($args['size'] != '-1') {
-            $filter_data['start'] = ((int)$args['page'] - 1) * (int)$args['size'];
-            $filter_data['limit'] = $args['size'];
-        }
-
-        if ($filter_data['sort'] == 'id') {
-            $filter_data['sort'] = 'product_id';
-        }
-
-        if ($args['category_id'] !== 0) {
-            $filter_data['filter_category_id'] = $args['category_id'];
-        }
-
-        if (!empty($args['ids'])) {
-            $filter_data['filter_ids'] = $args['ids'];
-        }
-
-        if (!empty($args['special'])) {
-            $filter_data['filter_special'] = true;
-        }
-
-        if (!empty($args['search'])) {
-            $filter_data['filter_search'] = $args['search'];
-        }
-
-        $results = $this->model_store_product->getProducts($filter_data);
-        $product_total = $this->model_store_product->getTotalProducts($filter_data);
+        $collection = $this->model_store_product->getProducts($args);
+        $product_total = $collection->getSize();
         $products = [];
-        foreach ($results as $product) {
-            $products[] = $this->get(array( 'id' => $product['product_id'] ));
+
+
+        foreach ($collection->getItems() as $product) {
+            $products[] = $this->get(array( 'product' => $product ));
         }
 
         return array(
@@ -135,26 +173,26 @@ class ResolverStoreProduct extends Resolver
     }
     public function getRelatedProducts($data)
     {
-        $product = $data['parent'];
+        $parent = $data['product'];
         $args = $data['args'];
 
-        $upsell_ids = $this->model_store_product->getProductRelated($product['id']);
+        $upsell_ids = $parent->getRelatedProductCollection()
+                            ->addAttributeToSelect('*')->load()->getItems();
 
         $upsell_ids = array_slice($upsell_ids, 0, $args['limit']);
 
         $products = array();
 
         foreach ($upsell_ids as $product) {
-            $products[] = $this->get(array( 'id' => $product['product_id'] ));
+            $products[] = $this->get(array( 'product' => $product ));
         }
-
 
         return $products;
     }
     public function getAttributes($data)
     {
-        $product = $data['parent'];
-        $results = $this->model_store_product->getProductAttributes($product['id']);
+        $product = $data['product'];
+        $results = $this->model_store_product->getProductAttributes($product->getId());
 
         $attributes = array();
 
@@ -179,17 +217,15 @@ class ResolverStoreProduct extends Resolver
     public function getOptions($data)
     {
         $this->load->model('store/product');
-        $product = $data['parent'];
-        $product_raw = $data['product'];
-
+        $product = $data['product'];
         $options = array();
 
-        if (!$product_raw['has_options']) {
+        if (!$product->getData('has_options')) {
             return $options;
         }
 
        
-        $results = $this->model_store_product->getSimpleProductOptions($product['id']);
+        $results = $this->model_store_product->getSimpleProductOptions($product->getId());
         foreach ($results as $value) {
             $type = 'text';
 
@@ -234,11 +270,10 @@ class ResolverStoreProduct extends Resolver
                 'values' => $values
             );
         }
-        if ($product_raw['type'] == 'configurable') {
-            $results = $this->model_store_product->getProductOptions($product['id']);
-
-            foreach ($results as $product) {
-                $attributes = $this->model_store_product->getProductAttributes($product['product_id']);
+        if ($product->getTypeId() == 'configurable') {
+            $results = $this->model_store_product->getProductOptions($product->getId());
+            foreach ($results as $optProduct) {
+                $attributes = $this->model_store_product->getProductAttributes($optProduct['product_id']);
                 foreach ($attributes as $attribute) {
                     if (!isset($options[$attribute['id']])) {
                         $options[$attribute['id']] = array(
@@ -270,17 +305,16 @@ class ResolverStoreProduct extends Resolver
     }
     public function getImages($data)
     {
-        $product = $data['parent'];
+        $product = $data['product'];
         $args = $data['args'];
-        
-        $image_ids = $this->model_store_product->getProductImages($product['id']);
+
+        $image_ids = $this->model_store_product->getProductImages($product->getId());
 
         $image_ids = array_slice($image_ids, 0, $args['limit']);
 
         $images = array();
-
         foreach ($image_ids as $image) {
-            if ($data['product']['image'] !== $image['image']) {
+            if ($product->getData('image') !== $image['image']) {
                 $images[]           = array(
                 'image'     => $this->image->getUrl($image['image']),
                 'imageBig'     => $this->image->getUrl($image['image']),

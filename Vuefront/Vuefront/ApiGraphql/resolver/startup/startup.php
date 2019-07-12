@@ -8,7 +8,7 @@ class ResolverStartupStartup extends Resolver
 {
     public function index()
     {
-        ob_start();
+        // ob_start();
         if (! empty($_GET['cors'])) {
             if (! empty($_SERVER['HTTP_ORIGIN'])) {
                 header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
@@ -39,7 +39,7 @@ class ResolverStartupStartup extends Resolver
             ];
         }
 
-        ob_clean();
+        // ob_clean();
     
         echo json_encode($result);
 

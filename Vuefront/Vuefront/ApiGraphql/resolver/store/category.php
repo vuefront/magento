@@ -1,84 +1,86 @@
 <?php
 
+use \Magento\Framework\App\ObjectManager;
+
 require_once VF_SYSTEM_DIR.'engine/resolver.php';
 
-class ResolverStoreCategory extends Resolver {
-    public function get($args) {
-    	$this->load->model('store/category');
+class ResolverStoreCategory extends Resolver
+{
+    private $_scopeConfig;
+    private $_suffix;
 
-    	$category_info = $this->model_store_category->getCategory($args['id']);
-        // if (!empty($category_info->image_id)) {
-        //     $category_image      = wp_get_attachment_image_src($category_info->image_id, 'full');
-        //     $category_lazy_image = wp_get_attachment_image_src($category_info->image_id, array( 10, 10 ));
+    public function __construct($registry)
+    {
+        parent::__construct($registry);
 
-        //     $thumb               = $category_image[0];
-        //     $thumbLazy           = $category_lazy_image[0];
-        // } else {
-        //     $thumb      = '';
-        //     $thumbLazy = '';
-        // }
+        $objectManager =ObjectManager::getInstance();
 
-        // $keyword = str_replace(get_site_url(), '', get_term_link((int)$category_info->ID));
-        // $keyword = trim($keyword, '/?');
-        // $keyword = trim($keyword, '/');
+        $this->_scopeConfig = $objectManager->get('\Magento\Framework\App\Config\ScopeConfigInterface');
+        $this->_suffix = $this->_scopeConfig->getValue('catalog/seo/category_url_suffix');
+    }
 
+    public function get($args)
+    {
+        $this->load->model('store/category');
 
-        if($category_info['image']) {
-            $thumb = $this->image->getUrl($category_info['image']);
+        if (!isset($args['category'])) {
+            $category = $this->model_store_category->getCategory($args['id']);
         } else {
-            $thumb = '';
+            $category = $args['category'];
         }
 
+        $that = $this;
+
         return array(
-            'id'          => $category_info['category_id'],
-            'name'        => $category_info['name'],
-            'description' => $category_info['description'],
-            'parent_id'   => (string) $category_info['parent_id'],
-            'image'       => $thumb,
-            'imageLazy'   => function($root, $args) use ($category_info){
-                return $this->image->resize($category_info['image'], 10, 10);
+            'id'          => function () use ($category) {
+                return $category->getId();
             },
-            'url' => function($root, $args) {
-                return $this->url(array(
+            'name'          => function () use ($category) {
+                return $category->getName();
+            },
+            'description'          => function () use ($category) {
+                return $category->getDescription();
+            },
+            'parent_id'          => function () use ($category) {
+                return $category->getData('parent_id');
+            },
+            'image' => function () use ($category, $that) {
+                return $category->getData('thumbnail') ? $that->image->getUrl($category->getData('thumbnail')) : '';
+            },
+            'imageLazy' => function () use ($category, $that) {
+                return $category->getData('thumbnail') ? $that->image->resize($category->getData('thumbnail'), 10, 10) : '';
+            },
+            'url' => function ($root, $args) use ($that, $category) {
+                return $that->url(array(
                     'parent' => $root,
-                    'args' => $args
+                    'args' => $args,
+                    'category' => $category
                 ));
             },
-            'categories' => function($root, $args) {
+            'categories' => function ($root, $args) use ($category) {
                 return $this->child(array(
                     'parent' => $root,
-                    'args' => $args
+                    'args' => $args,
+                    'category' => $category
                 ));
             },
-            'keyword' => $category_info['keyword']
+            'keyword' => function () use ($category) {
+                return !empty($category->getUrlKey()) ? $category->getUrlKey().$this->_suffix: "";
+            }
         );
     }
 
-    public function getList($args) {
-    	$this->load->model('store/category');
-        $filter_data = array(
-            'sort' => $args['sort'],
-            'order'   => $args['order']
-        );
-        if ($args['parent'] != -1) {
-            $filter_data['filter_parent_id'] = $args['parent'];
-            if($args['parent'] == 0) {
-                $filter_data['filter_parent_id'] = $this->store->getRootCategoryId();
-            }
-        }
+    public function getList($args)
+    {
+        $this->load->model('store/category');
 
-        if ($args['size'] != - 1) {
-            $filter_data['start'] = ($args['page'] - 1) * $args['size'];
-            $filter_data['limit'] = $args['size'];
-        }
+        $collection = $this->model_store_category->getCategories($args);
 
-        $product_categories = $this->model_store_category->getCategories($filter_data);
-
-        $category_total = $this->model_store_category->getTotalCategories($filter_data);
+        $category_total = $collection->getSize();
   
         $categories = array();
-        foreach ($product_categories as $category) {
-            $categories[] = $this->get(array( 'id' => $category['category_id'] ));
+        foreach ($collection->getItems() as $category) {
+            $categories[] = $this->get(array( 'category' => $category ));
         }
 
         return array(
@@ -93,33 +95,31 @@ class ResolverStoreCategory extends Resolver {
         );
     }
 
-    public function child($data) {
+    public function child($data)
+    {
         $this->load->model('store/category');
-        $category = $data['parent'];
-        $filter_data = array(
-            'filter_parent_id' => $category['id']
-        );
+        $category = $data['category'];
 
-        $product_categories = $this->model_store_category->getCategories($filter_data);
-
+        $product_categories = $category->getChildrenCategories();
         $categories = array();
 
         foreach ($product_categories as $category) {
-            $categories[] = $this->get(array( 'id' => $category['category_id'] ));
+            $categories[] = $this->get(array( 'category' => $category ));
         }
 
         return $categories;
     }
 
-    public function url($data) {
-        $category_info = $data['parent'];
+    public function url($data)
+    {
+        $category = $data['category'];
         $result = $data['args']['url'];
 
-        $result = str_replace("_id", $category_info['id'], $result);
-        $result = str_replace("_name", $category_info['name'], $result);
+        $result = str_replace("_id", $category->getId(), $result);
+        $result = str_replace("_name", $category->getName(), $result);
 
-        if($category_info['keyword'] != '') {
-            $result = '/'.$category_info['keyword'];
+        if ($category->getUrlKey() != '') {
+            $result = '/'.$category->getUrlKey().'.html';
         }
 
         return $result;

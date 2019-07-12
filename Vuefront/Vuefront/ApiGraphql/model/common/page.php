@@ -1,90 +1,68 @@
 <?php
 
-require_once VF_SYSTEM_DIR.'engine/model.php';
+use Magento\Framework\App\ObjectManager;
 
+require_once VF_SYSTEM_DIR . 'engine/model.php';
+
+/**
+ * @property \Magento\Cms\Model\ResourceModel\Page\CollectionFactory $_collectionFactory
+ * @property \Magento\Cms\Model\PageFactory $_pageFactory
+ */
 class ModelCommonPage extends Model
 {
-    public function getPage($page_id)
+    private $_collectionFactory;
+    private $_pageFactory;
+
+    public function __construct($registry)
     {
+        parent::__construct($registry);
 
-        $sql = "SELECT * FROM `" . $this->db->getTableName('cms_page') . "` WHERE page_id = '" . $page_id . "'";
-
-        $result = $this->db->fetchOne($sql);
-
-        return $result;
+        $objectManager = ObjectManager::getInstance();
+        $this->_collectionFactory = $objectManager->get('\Magento\Cms\Model\ResourceModel\Page\CollectionFactory');
+        $this->_pageFactory = $objectManager->get('\Magento\Cms\Model\PageFactory');
     }
 
-    public function getPages($data = array())
+    public function getPage($page_id)
     {
-        $sql = "SELECT p.page_id FROM `" . $this->db->getTableName('cms_page') . "` p LEFT JOIN `" . $this->db->getTableName('cms_page_store') . "` ps ON ps.page_id = p.page_id WHERE ps.store_id IN ('" . $this->store->getStoreId() . "', '0')";
+        return $this->_pageFactory->create()->load($page_id);
+    }
 
-        $implode = array();
+    public function getPages($data)
+    {
+        /** @var $collection \Magento\Cms\Model\ResourceModel\Page\Collection */
+        $collection = $this->_collectionFactory->create();
 
-        if (!empty($data['filter_search'])) {
-            $implode[] = "(p.title LIKE '%" . $data['filter_search'] . "%' 
-            OR p.content LIKE '%" . $data['filter_search'] . "%')";
+        if (!empty($data['search'])) {
+            $collection->addFieldToFilter('title', ['like' => '%' . $data['search'] . '%']);
         }
 
-        if (count($implode) > 0) {
-            $sql .= ' AND ' . implode(' AND ', $implode);
-        }
-
-        $sql .= " GROUP BY p.page_id";
-
-        $sort_data = array(
-            'p.page_id',
-            'p.title',
-            'p.sort_order'
-        );
-
-        if (isset($data['sort']) && in_array($data['sort'], $sort_data)) {
-            $sql .= " ORDER BY " . $data['sort'];
-        } else {
-            $sql .= " ORDER BY p.page_id";
+        if ($data['size'] != '-1') {
+            $collection->setPageSize($data['size']);
+            $collection->setCurPage($data['page']);
         }
 
         if (isset($data['order']) && ($data['order'] == 'DESC')) {
-            $sql .= " DESC";
+            $order = "DESC";
         } else {
-            $sql .= " ASC";
+            $order = "ASC";
         }
 
-        if (isset($data['start']) || isset($data['limit'])) {
-            if ($data['start'] < 0) {
-                $data['start'] = 0;
-            }
+        $sort_data = array(
+            'id' => 'page_id',
+            'title' => 'title',
+            'sort_order' => 'sort_order'
+        );
 
-            if ($data['limit'] < 1) {
-                $data['limit'] = 20;
-            }
-
-            $sql .= " LIMIT " . (int)$data['start'] . "," . (int)$data['limit'];
+        if (isset($data['sort']) && in_array($data['sort'], array_keys($sort_data))) {
+            $sort = $sort_data[$data['sort']];
+        } else {
+            $sort = "page_id";
         }
 
-        $results = $this->db->fetchAll($sql);
+        $collection->setOrder($sort, $order);
 
-        return $results;
-    }
+        $collection->load();
 
-    public function getTotalPages($data = array())
-    {
-        $sql = "SELECT count(*) as total FROM `" . $this->db->getTableName('cms_page') . "` p LEFT JOIN `" . $this->db->getTableName('cms_page_store') . "` ps ON ps.page_id = p.page_id WHERE ps.store_id IN ('" . $this->store->getStoreId() . "', '0')";
-
-        $implode = array();
-
-        if (!empty($data['filter_search'])) {
-            $implode[] = "(p.title LIKE '%" . $data['filter_search'] . "%' 
-            OR p.content LIKE '%" . $data['filter_search'] . "%')";
-        }
-
-        if (count($implode) > 0) {
-            $sql .= ' AND ' . implode(' AND ', $implode);
-        }
-
-        $sql .= " GROUP BY p.page_id";
-
-        $results = $this->db->fetchOne($sql);
-
-        return $results['total'];
+        return $collection;
     }
 }

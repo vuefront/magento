@@ -1,98 +1,69 @@
 <?php
 
-require_once VF_SYSTEM_DIR.'engine/model.php';
+use Magento\Framework\App\ObjectManager;
 
+require_once VF_SYSTEM_DIR . 'engine/model.php';
+
+/**
+ * @property \Magento\Directory\Model\ResourceModel\Region\CollectionFactory $_collectionFactory
+ * @property \Magento\Directory\Model\RegionFactory $_regionFactory
+ */
 class ModelCommonZone extends Model
 {
+    private $_collectionFactory;
+    private $_regionFactory;
+
+    public function __construct($registry)
+    {
+        parent::__construct($registry);
+
+        $objectManager = ObjectManager::getInstance();
+        $this->_collectionFactory = $objectManager->get('\Magento\Directory\Model\ResourceModel\Region\CollectionFactory');
+        $this->_regionFactory = $objectManager->get('\Magento\Directory\Model\RegionFactory');
+    }
+
     public function getZone($zone_id)
     {
-        $sql = "SELECT region_id as zone_id, country_id, code, default_name as name
-            FROM `".$this->db->getTableName('directory_country_region')."`
-            where region_id = '".$zone_id."'";
-
-        $results = $this->db->fetchOne($sql);
-
-        return $results;
+        return $this->_regionFactory->create()->load($zone_id);
     }
 
     public function getZones($data)
     {
-        $sql = "SELECT region_id as zone_id, country_id, code, default_name as name
-            FROM `".$this->db->getTableName('directory_country_region')."`";
+        /** @var $collection \Magento\Directory\Model\ResourceModel\Region\Collection */
+        $collection = $this->_collectionFactory->create();
 
-        $implode = array();
-
-        if(!empty($data['filter_name'])) {
-            $implode[] = "default_name LIKE '%".$data['filter_name']."%'";
+        if (!empty($data['search'])) {
+            $collection->addFieldToFilter('name', ['like' => '%' . $data['search'] . '%']);
+        }
+        if (!empty($data['country_id'])) {
+            $collection->addFieldToFilter('country_id', $data['country_id']);
         }
 
-        if(!empty($data['filter_country_id'])) {
-            $implode[] = "country_id LIKE '%".$data['filter_country_id']."%'";
-        }
-
-        if (count($implode) > 0) {
-            $sql .= ' where ' . implode(' AND ', $implode);
-        }
-
-        $sql .= " GROUP BY region_id";
-
-        $sort_data = array(
-            'zone_id',
-            'name'
-        );
-
-        if (isset($data['sort']) && in_array($data['sort'], $sort_data)) {
-            $sql .= " ORDER BY " . $data['sort'];
-        } else {
-            $sql .= " ORDER BY zone_id";
+        if ($data['size'] != '-1') {
+            $collection->setPageSize($data['size']);
+            $collection->setCurPage($data['page']);
         }
 
         if (isset($data['order']) && ($data['order'] == 'DESC')) {
-            $sql .= " DESC";
+            $order = "DESC";
         } else {
-            $sql .= " ASC";
+            $order = "ASC";
         }
 
-        if (isset($data['start']) || isset($data['limit'])) {
-            if ($data['start'] < 0) {
-                $data['start'] = 0;
-            }
+        $sort_data = array(
+            'id' => 'region_id',
+            'title' => 'name'
+        );
 
-            if ($data['limit'] < 1) {
-                $data['limit'] = 20;
-            }
-
-            $sql .= " LIMIT " . (int) $data['start'] . "," . (int) $data['limit'];
+        if (isset($data['sort']) && in_array($data['sort'], array_keys($sort_data))) {
+            $sort = $sort_data[$data['sort']];
+        } else {
+            $sort = "region_id";
         }
 
-        $results = $this->db->fetchAll($sql);
+        $collection->setOrder($sort, $order);
+        $collection->load();
 
-        return $results;
-    }
-
-    public function getTotalZones($data)
-    {
-        $sql = "SELECT count(*) as total
-            FROM `".$this->db->getTableName('directory_country_region')."`";
-
-        $implode = array();
-
-        if (!empty($data['filter_name'])) {
-            $implode[] = "default_name LIKE '%".$data['filter_name']."%'";
-        }
-        
-        if (!empty($data['filter_country_id'])) {
-            $implode[] = "country_id LIKE '%".$data['filter_country_id']."%'";
-        }
-
-
-        if (count($implode) > 0) {
-            $sql .= ' where ' . implode(' AND ', $implode);
-        }
-
-
-        $results = $this->db->fetchOne($sql);
-
-        return $results['total'];
+        return $collection;
     }
 }

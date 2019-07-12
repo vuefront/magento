@@ -12,23 +12,19 @@ class ResolverStoreCart extends Resolver
 
         $productRepository = $objectManager->get('Magento\Catalog\Model\ProductRepository');
         $cart = $objectManager->get('Magento\Checkout\Model\Cart');
-
         $options = array();
         $super_attributes = array();
 
         foreach ($args['options'] as $value) {
-            if(substr( $value['id'], 0, 7 ) === "option_") {
-                if(strpos($value['value'], '|') === false) {
+            if (substr($value['id'], 0, 7) === "option_") {
+                if (strpos($value['value'], '|') === false) {
                     $options[str_replace('option_', '', $value['id'])] = $value['value'];
-
                 } else {
                     $values = array_filter(explode('|', $value['value']), function ($value) {
                         return $value !== '';
                     });
                     $options[str_replace('option_', '', $value['id'])] = $values;
-
                 }
-
             } else {
                 $super_attributes[$value['id']] = $value['value'];
             }
@@ -42,11 +38,15 @@ class ResolverStoreCart extends Resolver
                 'super_attribute' => $super_attributes
             );
         $product_info = $productRepository->getById($args['id']);
+
         try {
             $cart->addProduct($product_info, $params);
-        } catch(Exception $e) {
-            echo '<pre>'; print_r($e->getMessage()); echo '</pre>';
+        } catch (Exception $e) {
+            echo '<pre>';
+            print_r($e->getMessage());
+            echo '</pre>';
         }
+
         $cart->save();
 
         return $this->get($args);
@@ -136,7 +136,7 @@ class ResolverStoreCart extends Resolver
 
                 $cart['products'][] = array(
                     'key'      => $value->getId(),
-                    'product'  => $this->load->resolver('store/product/get', array( 'id' => $value->getProduct()->getID() )),
+                    'product'  => $this->load->resolver('store/product/get', array( 'product' => $value->getProduct() )),
                     'quantity' => $value->getQty(),
                     'option'   => $options,
                     'total'    => $this->currency->format($value->getPrice() * $value->getQty())

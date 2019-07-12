@@ -1,59 +1,66 @@
 <?php
 
-require_once VF_SYSTEM_DIR.'engine/resolver.php';
+require_once VF_SYSTEM_DIR . 'engine/resolver.php';
 
 class ResolverCommonPage extends Resolver
 {
-    public function get($args) {
+    public function get($args)
+    {
         $this->load->model('common/page');
-        $page_info = $this->model_common_page->getPage($args['id']);
+
+        /** @var $page \Magento\Cms\Model\Page */
+        if (!isset($args['page'])) {
+            $page = $this->model_common_page->getPage($args['id']);
+        } else {
+            $page = $args['page'];
+        }
 
         return array(
-            'id' => $page_info['page_id'],
-            'title' => $page_info['title'],
-            'name'  => $page_info['title'],
-            'description' => $page_info['content'],
-            'sort_order' => (int)$page_info['sort_order'],
-            'keyword' => $page_info['identifier']
+            'id' => function () use ($page) {
+                return $page->getId();
+            },
+            'title' => function () use ($page) {
+                return $page->getTitle();
+            },
+            'name' => function () use ($page) {
+                return $page->getTitle();
+            },
+            'description' => function () use ($page) {
+                return $page->getContent();
+            },
+            'sort_order' => function () use ($page) {
+                return $page->getSortOrder();
+            },
+            'keyword' => function () use ($page) {
+                return $page->getIdentifier();
+            }
         );
     }
 
-    public function getList($args) {
+    public function getList($args)
+    {
         $this->load->model('common/page');
-        $filter_data = array(
-            'start' => ( $args['page'] - 1 ) * $args['size'],
-            'limit' => $args['size'],
-            'sort'  => $args['sort'],
-            'order' => $args['order'],
-        );
 
-        if($filter_data['sort'] == 'id') {
-            $filter_data['sort'] = 'page_id';
-        }
+        /** @var $collection \Magento\Cms\Model\ResourceModel\Page\Collection */
+        $collection = $this->model_common_page->getPages($args);
 
-        if (!empty($args['search'])) {
-            $filter_data['filter_search'] = $args['search'];
-        }
-
-        $results = $this->model_common_page->getPages( $filter_data );
-
-        $page_total = $this->model_common_page->getTotalPages( $filter_data );
+        $page_total = $collection->getSize();
 
         $pages = array();
 
-        foreach ( $results as $page ) {
-            $pages[] = $this->get( array( 'id' => $page['page_id'] ) );
+        foreach ($collection->getItems() as $page) {
+            $pages[] = $this->get(array('page' => $page));
         }
 
         return array(
-            'content'          => $pages,
-            'first'            => $args['page'] === 1,
-            'last'             => $args['page'] === ceil( $page_total / $args['size'] ),
-            'number'           => (int) $args['page'],
-            'numberOfElements' => count( $pages ),
-            'size'             => (int) $args['size'],
-            'totalPages'       => (int) ceil( $page_total / $args['size'] ),
-            'totalElements'    => (int) $page_total,
+            'content' => $pages,
+            'first' => $args['page'] === 1,
+            'last' => $args['page'] === ceil($page_total / $args['size']),
+            'number' => (int)$args['page'],
+            'numberOfElements' => count($pages),
+            'size' => (int)$args['size'],
+            'totalPages' => (int)ceil($page_total / $args['size']),
+            'totalElements' => (int)$page_total,
         );
     }
 }

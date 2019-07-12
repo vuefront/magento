@@ -1,6 +1,6 @@
 <?php
 
-require_once VF_SYSTEM_DIR.'engine/resolver.php';
+require_once VF_SYSTEM_DIR . 'engine/resolver.php';
 
 use \Magento\Framework\App\ObjectManager;
 
@@ -8,23 +8,22 @@ class ResolverBlogReview extends Resolver
 {
     public function add($args)
     {
-        $objectManager =ObjectManager::getInstance();
+        $objectManager = ObjectManager::getInstance();
         $commentFactory = $objectManager->get('Magefan\Blog\Model\CommentFactory');
         $customerSession = $objectManager->get('\Magento\Customer\Model\Session');
-
+        /** @var Magefan\Blog\Model\Comment $comment */
         $comment = $commentFactory->create();
 
         $comment->setData(array(
             'post_id' => $args['id'],
-            'author_nickname'  => $args['author'],
+            'author_nickname' => $args['author'],
             'author_email' => '',
             'text' => $args['content']
         ));
 
         $comment->setStatus(
             $this->getConfigValue(
-                \Magefan\Blog\Helper\Config::COMMENT_STATUS,
-                \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+                \Magefan\Blog\Helper\Config::COMMENT_STATUS
             )
         );
 
@@ -34,14 +33,13 @@ class ResolverBlogReview extends Resolver
                 $customerSession->getCustomerId()
             )->setAuthorNickname(
                 $customerSession->getCustomer()->getName()
-            )->setAauthorEmail(
+            )->setAuthorEmail(
                 $customerSession->getCustomer()->getEmail()
             )->setAuthorType(
                 \Magefan\Blog\Model\Config\Source\AuthorType::CUSTOMER
             );
         } elseif ($this->getConfigValue(
-            \Magefan\Blog\Helper\Config::GUEST_COMMENT,
-            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+            \Magefan\Blog\Helper\Config::GUEST_COMMENT
         )) {
             $comment->setCustomerId(0)->setAuthorType(
                 \Magefan\Blog\Model\Config\Source\AuthorType::GUEST
@@ -57,33 +55,33 @@ class ResolverBlogReview extends Resolver
 
     public function get($data)
     {
-        $post = $data['parent'];
-        $this->load->model('blog/review');
-        $result  = $this->model_blog_review->getReviews($post['id']);
+        /** @var $post Magefan\Blog\Model\Post */
+        $post = $data['post'];
+        /** @var Magefan\Blog\Model\ResourceModel\Comment\Collection $collection */
+        $collection = $post->getComments();
 
         $comments = array();
-
-
-        foreach ($result as $comment) {
+        /** @var Magefan\Blog\Model\Comment $comment */
+        foreach ($collection->getItems() as $comment) {
             $comments[] = array(
-                'author'       => $comment['author_nickname'],
-                'author_email' => $comment['author_email'],
-                'created_at'   => $comment['creation_time'],
-                'content'      => $comment['text'],
-                'rating'       => 0
+                'author' => $comment->getAuthorNickname(),
+                'author_email' => $comment->getAuthorEmail(),
+                'created_at' => $comment->getPublishDate(),
+                'content' => $comment->getText(),
+                'rating' => null
             );
         }
 
         return array(
-            'content'=> $comments,
-            'totalElements'=> count($comments)
+            'content' => $comments,
+            'totalElements' => $post->getCommentsCount()
         );
     }
 
     public function getConfigValue($path)
     {
-        $objectManager =ObjectManager::getInstance();
-
+        $objectManager = ObjectManager::getInstance();
+        /** @var \Magento\Framework\App\Config\ScopeConfigInterface $config */
         $config = $objectManager->get(\Magento\Framework\App\Config\ScopeConfigInterface::class);
         return $config->getValue(
             $path,

@@ -1,6 +1,6 @@
 <?php
 
-require_once VF_SYSTEM_DIR.'engine/resolver.php';
+require_once VF_SYSTEM_DIR . 'engine/resolver.php';
 
 class ResolverCommonZone extends Resolver
 {
@@ -10,17 +10,23 @@ class ResolverCommonZone extends Resolver
     {
         $this->load->model('common/zone');
 
-        $zone_info = $this->model_common_zone->getZone($args['id']);
-
-        if (!$zone_info) {
-            return array();
+        /** @var $zone \Magento\Directory\Model\Region */
+        if (!isset($args['zone'])) {
+            $zone = $this->model_common_zone->getZone($args['id']);
+        } else {
+            $zone = $args['zone'];
         }
 
-
         return array(
-           'id' => $args['id'],
-           'name' => $zone_info['name'],
-           'countryId' => $zone_info['country_id']
+            'id' => function () use ($zone) {
+                return $zone->getId();
+            },
+            'name' => function () use ($zone) {
+                return $zone->getName();
+            },
+            'countryId' => function () use ($zone) {
+                return $zone->getCountryId();
+            }
         );
     }
 
@@ -29,40 +35,23 @@ class ResolverCommonZone extends Resolver
         $this->load->model('common/zone');
         $zones = [];
 
-        $filter_data = array(
-            'sort' => $args['sort'],
-            'order'   => $args['order']
-        );
+        /** @var $collection \Magento\Directory\Model\ResourceModel\Region\Collection */
+        $collection = $this->model_common_zone->getZones($args);
+        $zone_total = $collection->getSize();
 
-        if ($args['size'] != - 1) {
-            $filter_data['start'] = ($args['page'] - 1) * $args['size'];
-            $filter_data['limit'] = $args['size'];
-        }
-
-        if (!empty($args['search'])) {
-            $filter_data['filter_name'] = $args['search'];
-        }
-        if (!empty($args['country_id'])) {
-            $filter_data['filter_country_id'] = $args['country_id'];
-        }
-
-
-        $results = $this->model_common_zone->getZones($filter_data);
-        $zone_total = $this->model_common_zone->getTotalZones($filter_data);
-
-        foreach ($results as $value) {
-            $zones[] = $this->get(array( 'id' => $value['zone_id'] ));
+        foreach ($collection->getItems() as $value) {
+            $zones[] = $this->get(array('zone' => $value));
         }
 
         return array(
-            'content'          => $zones,
-            'first'            => $args['page'] === 1,
-            'last'             => $args['page'] === ceil($zone_total / $args['size']),
-            'number'           => (int) $args['page'],
+            'content' => $zones,
+            'first' => $args['page'] === 1,
+            'last' => $args['page'] === ceil($zone_total / $args['size']),
+            'number' => (int)$args['page'],
             'numberOfElements' => count($zones),
-            'size'             => (int) $args['size'],
-            'totalPages'       => (int) ceil($zone_total / $args['size']),
-            'totalElements'    => (int) $zone_total,
+            'size' => (int)$args['size'],
+            'totalPages' => (int)ceil($zone_total / $args['size']),
+            'totalElements' => (int)$zone_total,
         );
     }
 }

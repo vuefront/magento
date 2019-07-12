@@ -41,9 +41,9 @@ class ResolverStoreReview extends Resolver
 
     public function get($data)
     {
-        $product = $data['parent'];
+        $product = $data['product'];
 
-        $result = $this->model_store_product->getProductReview($product['id']);
+        $result = $this->model_store_product->getProductReview($product->getId());
 
         $comments = array();
 

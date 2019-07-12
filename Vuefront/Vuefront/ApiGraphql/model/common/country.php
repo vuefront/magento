@@ -1,93 +1,68 @@
 <?php
 
-require_once VF_SYSTEM_DIR.'engine/model.php';
+use Magento\Framework\App\ObjectManager;
 
+require_once VF_SYSTEM_DIR . 'engine/model.php';
+
+/**
+ * @property \Magento\Directory\Model\ResourceModel\Country\CollectionFactory $_collectionFactory
+ * @property \Magento\Directory\Model\CountryFactory $_countryFactory
+ */
 class ModelCommonCountry extends Model
 {
+    private $_collectionFactory;
+    private $_countryFactory;
+
+    public function __construct($registry)
+    {
+        parent::__construct($registry);
+
+        $objectManager = ObjectManager::getInstance();
+        $this->_collectionFactory = $objectManager->get('\Magento\Directory\Model\ResourceModel\Country\CollectionFactory');
+        $this->_countryFactory = $objectManager->get('\Magento\Directory\Model\CountryFactory');
+    }
+
     public function getCountry($country_id)
     {
-        $sql = "SELECT c.country_id, cc.name
-            FROM `".$this->db->getTableName('directory_country')."` c
-            left join `".$this->db->getTableName('msp_tfa_country_codes')."` cc on c.country_id = cc.code
-            where c.country_id = '".$country_id."'";
-
-        $results = $this->db->fetchOne($sql);
-
-        return $results;
+        return $this->_countryFactory->create()->load($country_id);
     }
 
     public function getCountries($data)
     {
-        $sql = "SELECT c.country_id, cc.name
-            FROM `".$this->db->getTableName('directory_country')."` c
-            left join `".$this->db->getTableName('msp_tfa_country_codes')."` cc on c.country_id = cc.code";
+        /** @var $collection \Magento\Directory\Model\ResourceModel\Country\Collection */
+        $collection = $this->_collectionFactory->create();
 
-        $implode = array();
-
-        if (!empty($data['filter_name'])) {
-            $implode[] = "cc.name LIKE '%".$data['filter_name']."%'";
+        if (!empty($data['search'])) {
+            $collection->join('msp_tfa_country_codes', 'msp_tfa_country_codes.code = main_table.iso2_code');
+            $collection->addFieldToFilter('name', ['like' => '%' . $data['search'] . '%']);
         }
 
-        if (count($implode) > 0) {
-            $sql .= ' where ' . implode(' AND ', $implode);
-        }
-
-        $sql .= " GROUP BY c.country_id";
-
-        $sort_data = array(
-            'c.country_id',
-            'cc.name'
-        );
-
-        if (isset($data['sort']) && in_array($data['sort'], $sort_data)) {
-            $sql .= " ORDER BY " . $data['sort'];
-        } else {
-            $sql .= " ORDER BY c.country_id";
+        if ($data['size'] != '-1') {
+            $collection->setPageSize($data['size']);
+            $collection->setCurPage($data['page']);
         }
 
         if (isset($data['order']) && ($data['order'] == 'DESC')) {
-            $sql .= " DESC";
+            $order = "DESC";
         } else {
-            $sql .= " ASC";
+            $order = "ASC";
         }
 
-        if (isset($data['start']) || isset($data['limit'])) {
-            if ($data['start'] < 0) {
-                $data['start'] = 0;
-            }
+        $sort_data = array(
+            'id' => 'country_id',
+            'title' => 'iso2_code'
+        );
 
-            if ($data['limit'] < 1) {
-                $data['limit'] = 20;
-            }
-
-            $sql .= " LIMIT " . (int) $data['start'] . "," . (int) $data['limit'];
+        if (isset($data['sort']) && in_array($data['sort'], array_keys($sort_data))) {
+            $sort = $sort_data[$data['sort']];
+        } else {
+            $sort = "country_id";
         }
 
-        $results = $this->db->fetchAll($sql);
+        $collection->setOrder($sort, $order);
 
-        return $results;
-    }
+        $collection->load();
 
-    public function getTotalCountries($data)
-    {
-        $sql = "SELECT count(*) as total
-            FROM `".$this->db->getTableName('directory_country')."` c
-            left join `".$this->db->getTableName('msp_tfa_country_codes')."` cc on c.country_id = cc.code";
-
-
-        $implode = array();
-
-        if (!empty($data['filter_name'])) {
-            $implode[] = "cc.name LIKE '%".$data['filter_name']."%'";
-        }
-
-        if (count($implode) > 0) {
-            $sql .= ' where ' . implode(' AND ', $implode);
-        }
-
-
-        $results = $this->db->fetchOne($sql);
-
-        return $results['total'];
+        return $collection;
     }
 }

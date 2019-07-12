@@ -2,7 +2,7 @@
 
 use \Magento\Framework\App\ObjectManager;
 
-require_once VF_SYSTEM_DIR.'engine/resolver.php';
+require_once VF_SYSTEM_DIR . 'engine/resolver.php';
 
 class ResolverStoreCurrency extends Resolver
 {
@@ -11,21 +11,21 @@ class ResolverStoreCurrency extends Resolver
     public function get()
     {
         $objectManager = ObjectManager::getInstance();
-
+        /** @var Magento\Directory\Model\Currency $currencyModel */
         $currencyModel = $objectManager->get('Magento\Directory\Model\Currency');
         $currencies = array();
 
 
-        foreach ($currencyModel->getConfigAllowCurrencies(true)  as $code) {
+        foreach ($currencyModel->getConfigAllowCurrencies() as $code) {
             $allCurrencies = $objectManager->create('Magento\Framework\Locale\Bundle\CurrencyBundle')->get(
                 $objectManager->create('Magento\Framework\Locale\ResolverInterface')->getLocale()
             )['Currencies'];
 
             $currencies[] = array(
-                'title'        => $allCurrencies[$code][1] ?: $code,
-                'name'         => $allCurrencies[$code][1] ?: $code,
-                'code'         => $code,
-                'symbol_left'  => $objectManager->create('Magento\Framework\Locale\CurrencyInterface')->getCurrency($code)->getSymbol(),
+                'title' => $allCurrencies[$code][1] ?: $code,
+                'name' => $allCurrencies[$code][1] ?: $code,
+                'code' => $code,
+                'symbol_left' => $objectManager->create('Magento\Framework\Locale\CurrencyInterface')->getCurrency($code)->getSymbol(),
                 'symbol_right' => '',
                 'active' => $code == $this->store->getCurrencyCode()
             );

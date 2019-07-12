@@ -1,17 +1,23 @@
 <?php
+use \Magento\Framework\App\ObjectManager;
 
 require_once VF_SYSTEM_DIR.'engine/model.php';
 
 class ModelStoreProduct extends Model
 {
-    public function getProductRelated($product_id)
+    private $_collectionFactory;
+    private $_productVisibility;
+    private $_productFactory;
+    private $_categoryFactory;
+
+    public function __construct($registry)
     {
-        $sql = "SELECT linked_product_id as product_id
-        FROM `".$this->db->getTableName("catalog_product_link")."` where product_id = '".(int)$product_id."' and link_type_id=1";
-
-        $product_data = $this->db->fetchAll($sql);
-
-        return $product_data;
+        parent::__construct($registry);
+        $objectManager = ObjectManager::getInstance();
+        $this->_collectionFactory = $objectManager->get('\Magento\Catalog\Model\ResourceModel\Product\CollectionFactory');
+        $this->_productVisibility = $objectManager->get('\Magento\Catalog\Model\Product\Visibility');
+        $this->_categoryFactory = $objectManager->get('Magento\Catalog\Model\CategoryFactory');
+        $this->_productFactory = $objectManager->get('Magento\Catalog\Model\Product');
     }
 
     public function getProductImages($product_id)
@@ -158,314 +164,105 @@ class ModelStoreProduct extends Model
 
     public function getProduct($product_id)
     {
-        $sql = "SELECT 
-            p.entity_id as product_id, 
-            p.entity_id as sort_order, 
-            p.sku as model, 
-            p.type_id as type,
-            p.has_options as has_options,
-            p.created_at as date_added, 
-            k.qty as quantity,
-            (
-                SELECT value 
-                FROM `".$this->db->getTableName('catalog_product_entity_varchar')."`
-                WHERE entity_id = p.entity_id AND attribute_id = (
-                    SELECT attribute_id 
-                    FROM `".$this->db->getTableName('eav_attribute')."`
-                    WHERE entity_type_id='".$this->db->getEntityType('catalog_product')."' AND attribute_code='name'
-                )
-            ) as name,
-            (
-                SELECT value 
-                FROM `".$this->db->getTableName('catalog_product_entity_text')."`
-                WHERE entity_id = p.entity_id AND attribute_id = (
-                    SELECT attribute_id 
-                    FROM `".$this->db->getTableName('eav_attribute')."`
-                    WHERE entity_type_id=4 AND attribute_code='description'
-                )
-            ) as description,
-            (
-                SELECT value 
-                FROM `".$this->db->getTableName('catalog_product_entity_varchar')."`
-                WHERE entity_id = p.entity_id AND attribute_id = (
-                    SELECT attribute_id 
-                    FROM `".$this->db->getTableName('eav_attribute')."`
-                    WHERE entity_type_id='".$this->db->getEntityType('catalog_product')."' AND attribute_code='short_description'
-                )
-            ) as short_description,
-            (
-                SELECT value 
-                FROM catalog_product_entity_varchar
-                WHERE entity_id = p.entity_id AND attribute_id = (
-                    SELECT attribute_id 
-                    FROM eav_attribute
-                    WHERE entity_type_id='".$this->db->getEntityType('catalog_product')."' AND attribute_code='thumbnail'
-                )
-            ) as thumbnail,
-            (
-                SELECT value 
-                FROM `".$this->db->getTableName('catalog_product_entity_varchar')."`
-                WHERE entity_id = p.entity_id AND attribute_id = (
-                    SELECT attribute_id 
-                    FROM `".$this->db->getTableName('eav_attribute')."`
-                    WHERE entity_type_id='".$this->db->getEntityType('catalog_product')."' AND attribute_code='image'
-                )
-            ) as image,
-            (
-                SELECT value 
-                FROM `".$this->db->getTableName('catalog_product_entity_varchar')."`
-                WHERE entity_id = p.entity_id AND attribute_id = (
-                    SELECT attribute_id 
-                    FROM `".$this->db->getTableName('eav_attribute')."`
-                    WHERE entity_type_id=4 AND attribute_code='small_image'
-                )
-            ) as small_image,
-            (
-                SELECT value 
-                FROM `".$this->db->getTableName('catalog_product_entity_decimal')."`
-                WHERE entity_id = p.entity_id AND attribute_id = (
-                    SELECT attribute_id 
-                    FROM `".$this->db->getTableName('eav_attribute')."`
-                    WHERE entity_type_id='".$this->db->getEntityType('catalog_product')."' AND attribute_code='price'
-                )
-            ) as price,
-            (
-                SELECT value 
-                FROM `".$this->db->getTableName('catalog_product_entity_decimal')."`
-                WHERE entity_id = p.entity_id AND attribute_id = (
-                    SELECT attribute_id 
-                    FROM `".$this->db->getTableName('eav_attribute')."`
-                    WHERE entity_type_id='".$this->db->getEntityType('catalog_product')."' AND attribute_code='special_price'
-                )
-            ) as special_price,
-            (
-                SELECT
-                    value
-                FROM
-                    `".$this->db->getTableName('catalog_product_entity_varchar')."`
-                WHERE
-                    entity_id = p.entity_id
-                    AND attribute_id = (
-                        SELECT
-                            attribute_id
-                        FROM
-                            `".$this->db->getTableName('eav_attribute')."`
-                        WHERE
-                            entity_type_id = '".$this->db->getEntityType('catalog_product')."'
-                            AND attribute_code = 'url_key' 
-                    )
-            ) as keyword
-            FROM `".$this->db->getTableName('catalog_product_entity')."` p 
-            RIGHT JOIN `".$this->db->getTableName('cataloginventory_stock_item')."` k ON p.entity_id = k.item_id 
-            WHERE p.entity_id = '".(int)$product_id."'";
-        return $this->db->fetchOne($sql);
+        return $this->_productFactory->load($product_id);
     }
 
     public function getProducts($data = array())
     {
-        $sql = "SELECT p.entity_id as product_id, p.entity_id as sort_order, p.sku as model, p.created_at as date_added, ps.value as special, pp.value as price, pn.value as name, r.rating_summary as rating
-            FROM `".$this->db->getTableName('catalog_product_entity')."` p 
-            LEFT JOIN `".$this->db->getTableName('catalog_product_entity_decimal')."` ps on
-                p.entity_id = ps.entity_id
-                AND ps.attribute_id = (
-                    SELECT
-                        attribute_id
-                    FROM
-                        `".$this->db->getTableName('eav_attribute')."`
-                    WHERE
-                        entity_type_id = '".$this->db->getEntityType('catalog_product')."'
-                    AND attribute_code = 'special_price' 
-                )
-            LEFT JOIN `".$this->db->getTableName('catalog_product_entity_decimal')."` pp on
-                p.entity_id = pp.entity_id
-                AND pp.attribute_id = (
-                    SELECT
-                        attribute_id
-                    FROM
-                        `".$this->db->getTableName('eav_attribute')."`
-                    WHERE
-                        entity_type_id = 4
-                    AND attribute_code = 'price' 
-                )
-            LEFT JOIN `".$this->db->getTableName('catalog_product_entity_int')."` pv on
-                p.entity_id = pv.entity_id
-                AND pv.attribute_id = (
-                    SELECT
-                        attribute_id
-                    FROM
-                        `".$this->db->getTableName('eav_attribute')."`
-                    WHERE
-                        entity_type_id = '".$this->db->getEntityType('catalog_product')."'
-                        AND attribute_code = 'visibility' 
-                )
-            LEFT JOIN `".$this->db->getTableName('catalog_product_entity_varchar')."` pn on
-                p.entity_id = pn.entity_id
-                AND pn.attribute_id = (
-                    SELECT
-                        attribute_id
-                    FROM
-                    `".$this->db->getTableName('eav_attribute')."`
-                    WHERE
-                        entity_type_id = '".$this->db->getEntityType('catalog_product')."'
-                    AND attribute_code = 'name' 
-                ) 
-            LEFT JOIN `".$this->db->getTableName('review_entity_summary')."` r
-            ON r.entity_pk_value = p.entity_id and r.store_id='".$this->store->getStoreId()."'
-            LEFT JOIN `".$this->db->getTableName('catalog_product_entity_text')."` pd on
-                p.entity_id = pd.entity_id
-                AND pd.attribute_id = (
-                    SELECT
-                        attribute_id
-                    FROM
-                    `".$this->db->getTableName('eav_attribute')."`
-                    WHERE
-                        entity_type_id = '".$this->db->getEntityType('catalog_product')."'
-                    AND attribute_code = 'description' 
-                ) where pv.value >1 ";
-        
-        $implode = array();
-
-        if (!empty($data['filter_ids'])) {
-            $implode[] = "p.entity_id in ('".implode("' , '", $data['filter_ids'])."')";
-        }
-    
-        if (!empty($data['filter_category_id'])) {
-            $implode[] = "'".(int)$data['filter_category_id']."' IN (
-                SELECT category_id
-                FROM `".$this->db->getTableName('catalog_category_product')."`
-                WHERE product_id=p.entity_id
-            )";
-        }
-    
-        if (!empty($data['filter_special'])) {
-            $implode[] = "ps.value IS NOT NULL";
-        }
-    
-        if (!empty($data['filter_search'])) {
-            $implode[] = "(pn.value LIKE '%".html_entity_decode($data['filter_search'], ENT_QUOTES, 'UTF-8')."%' 
-            OR pd.value LIKE '%".html_entity_decode($data['filter_search'], ENT_QUOTES, 'UTF-8')."%'
-            OR p.sku LIKE '%".html_entity_decode($data['filter_search'], ENT_QUOTES, 'UTF-8')."%')";
-        }
-
-        if (count($implode) > 0) {
-            $sql .= ' AND ' . implode(' AND ', $implode);
-        }
-
-        $sort_data = array(
-            'product_id',
-            'name',
-            'price',
-            'special',
-            'rating',
-            'date_added',
-            'model',
-            'sort_order'
-        );
-
-        if (isset($data['sort']) && in_array($data['sort'], $sort_data)) {
-            $sql .= " ORDER BY " . $data['sort'];
+        if (!empty($data['category_id']) && $data['category_id'] !== 0) {
+            $category = $this->_categoryFactory->create()->load($data['category_id']);
+            $collection = $category->getProductCollection();
         } else {
-            $sql .= " ORDER BY product_id";
+            $collection = $this->_collectionFactory->create();
+        }
+
+        $collection->setVisibility($this->_productVisibility->getVisibleInSiteIds());
+        $collection->addAttributeToSelect('*');
+
+        if ($data['size'] != '-1') {
+            $collection->setPage($data['page'], $data['size']);
+        }
+
+        if (!empty($data['ids'])) {
+            $collection->addAttributeToFilter('entity_id', ['in' => $data['ids']]);
+        }
+
+        if (!empty($data['special'])) {
+            $collection->addAttributeToFilter(
+                'special_price',
+                ['gt'=>0],
+                'left'
+            )->addAttributeToFilter(
+                'special_from_date',
+                ['or' =>
+                    [
+                        0 =>
+                        [
+                            'date' => true,
+                            'to' => date('Y-m-d', time()).' 23:59:59'
+                        ],
+                        1 => [
+                            'is' => new \Zend_Db_Expr('null')
+                        ],
+                    ]
+                ],
+                'left'
+            )->addAttributeToFilter(
+                'special_to_date',
+                [
+                    'or' =>
+                        [
+                            0 =>
+                            [
+                                'date' => true,
+                                'from' => date('Y-m-d', time()).' 00:00:00'
+                            ],
+                            1 => [
+                                'is' => new \Zend_Db_Expr('null')
+                            ],
+                        ]
+                        ],
+                'left'
+            );
+        }
+
+        if (!empty($data['search'])) {
+            $collection->addAttributeToFilter(
+                [
+                    ['attribute' => 'name', 'like' => '%'.$data['search'].'%'],
+                    ['attribute' => 'description', 'like' => '%'.$data['search'].'%'],
+                    ['attribute' => 'sku', 'like' => '%'.$data['search'].'%']
+                ]
+            );
         }
 
         if (isset($data['order']) && ($data['order'] == 'DESC')) {
-            $sql .= " DESC";
+            $order = "DESC";
         } else {
-            $sql .= " ASC";
+            $order = "ASC";
         }
 
-        if (isset($data['start']) || isset($data['limit'])) {
-            if ($data['start'] < 0) {
-                $data['start'] = 0;
-            }
+        $sort_data = array(
+            'id' => 'entity_id',
+            'name' => 'name',
+            'price' => 'price',
+            'special' => 'price',
+            'rating' => 'price',
+            'date_added' => 'created_at',
+            'model' => 'sku',
+            'sort_order' => 'entity_id'
+        );
 
-            if ($data['limit'] < 1) {
-                $data['limit'] = 20;
-            }
-
-            $sql .= " LIMIT " . (int) $data['start'] . "," . (int) $data['limit'];
+        if (isset($data['sort']) && in_array($data['sort'], array_keys($sort_data))) {
+            $sort = $sort_data[$data['sort']];
+        } else {
+            $sort = "entity_id";
         }
 
-        return $this->db->fetchAll($sql);
-    }
+        $collection->setOrder($sort, $order);
 
-    public function getTotalProducts($data = array())
-    {
-        $sql = "SELECT count(*) as total 
-            FROM `".$this->db->getTableName('catalog_product_entity')."` p 
-            LEFT JOIN `".$this->db->getTableName('catalog_product_entity_decimal')."` ps on
-                p.entity_id = ps.entity_id
-                AND ps.attribute_id = (
-                    SELECT
-                        attribute_id
-                    FROM
-                        `".$this->db->getTableName('eav_attribute')."`
-                    WHERE
-                        entity_type_id = '".$this->db->getEntityType('catalog_product')."'
-                    AND attribute_code = 'special_price' 
-                )
-            LEFT JOIN `".$this->db->getTableName('catalog_product_entity_int')."` pv on
-                p.entity_id = pv.entity_id
-                AND pv.attribute_id = (
-                    SELECT
-                        attribute_id
-                    FROM
-                        `".$this->db->getTableName('eav_attribute')."`
-                    WHERE
-                        entity_type_id = '".$this->db->getEntityType('catalog_product')."'
-                        AND attribute_code = 'visibility' 
-                )
-            LEFT JOIN `".$this->db->getTableName('catalog_product_entity_varchar')."` pn on
-                p.entity_id = pn.entity_id
-                AND pn.attribute_id = (
-                    SELECT
-                        attribute_id
-                    FROM
-                    `".$this->db->getTableName('eav_attribute')."`
-                    WHERE
-                        entity_type_id = '".$this->db->getEntityType('catalog_product')."'
-                    AND attribute_code = 'name' 
-                ) 
-            LEFT JOIN `".$this->db->getTableName('catalog_product_entity_text')."` pd on
-                p.entity_id = pd.entity_id
-                AND pd.attribute_id = (
-                    SELECT
-                        attribute_id
-                    FROM
-                    `".$this->db->getTableName('eav_attribute')."`
-                    WHERE
-                        entity_type_id = '".$this->db->getEntityType('catalog_product')."'
-                    AND attribute_code = 'description' 
-                ) where pv.value > 1 ";
-        $implode = array();
+        $collection->load();
 
-        if (!empty($data['filter_ids'])) {
-            $implode[] = "p.entity_id in ('".implode("' , '", $data['filter_ids'])."')";
-        }
-
-        if (!empty($data['filter_special'])) {
-            $implode[] = "ps.value IS NOT NULL";
-        }
-
-        if (!empty($data['filter_search'])) {
-            $implode[] = "(pn.value LIKE '%".$data['filter_search']."%' 
-            OR pd.value LIKE '%".$data['filter_search']."%'
-            OR p.sku LIKE '%".$data['filter_search']."%')";
-        }
-
-        if (!empty($data['filter_category_id'])) {
-            $implode[] = "'".(int)$data['filter_category_id']."' IN (
-                SELECT category_id
-                FROM `".$this->db->getTableName('catalog_category_product')."`
-                WHERE product_id=p.entity_id
-            )";
-        }
-
-        if (count($implode) > 0) {
-            $sql .= ' AND ' . implode(' AND ', $implode);
-        }
-        $result = $this->db->fetchOne($sql);
-
-        return !empty($result) ? $result['total'] : 0;
+        return $collection;
     }
 }
