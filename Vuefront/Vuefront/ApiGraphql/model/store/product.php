@@ -18,6 +18,7 @@ class ModelStoreProduct extends Model
     private $_productFactory;
     private $_categoryFactory;
 
+
     public function __construct($registry)
     {
         parent::__construct($registry);
@@ -27,6 +28,7 @@ class ModelStoreProduct extends Model
         $this->_categoryFactory = $objectManager->get('Magento\Catalog\Model\CategoryFactory');
         $this->_productFactory = $objectManager->get('Magento\Catalog\Model\ProductFactory');
         $this->_productRepository = $objectManager->get('Magento\Catalog\Api\ProductRepositoryInterface');
+
     }
 
     public function getProduct($product_id)

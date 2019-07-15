@@ -235,7 +235,7 @@ class ResolverStoreProduct extends Resolver
         $product = $data['product'];
         $options = array();
 
-        if (!$product->getData('has_options')) {
+        if (!$product->getData('has_options') && $product->getTypeId() !== 'downloadable') {
             return $options;
         }
         /** @var \Magento\Catalog\Model\ResourceModel\Product\Option\Collection $collection */
@@ -280,6 +280,25 @@ class ResolverStoreProduct extends Resolver
                 'values' => $values
             );
         }
+
+        if ($product->getTypeId() == 'downloadable') {
+            $links = $product->getTypeInstance(true)->getLinks($product);
+            if (count($links) > 0) {
+                $options['links'] = array(
+                    'id' => 'links',
+                    'name' => $product->getData('links_title'),
+                    'type' => 'checkbox',
+                    'values' => array()
+                );
+            }
+            foreach ($links as $link) {
+                $options['links']['values'][] = array(
+                    'id' => $link->getId(),
+                    'name' => $link->getTitle()
+                );
+            }
+        }
+
 
         if ($product->getTypeId() == 'configurable') {
             $results = $product->getTypeInstance()->getConfigurableOptions($product);
