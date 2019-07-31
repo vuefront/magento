@@ -33,6 +33,13 @@ class ResolverCommonPage extends Resolver
             },
             'keyword' => function () use ($page) {
                 return $page->getIdentifier();
+            },
+            'meta' => function() use ($page) {
+                return array(
+                    'title' => $page->getMetaTitle() != '' ? $page->getMetaTitle() : $page->getTitle(),
+                    'description' => $page->getMetaDescription(),
+                    'keyword' => $page->getMetaKeywords()
+                );
             }
         );
     }

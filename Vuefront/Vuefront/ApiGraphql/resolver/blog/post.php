@@ -88,6 +88,13 @@ class ResolverBlogPost extends Resolver
                         'args' => $args,
                         'post' => $post
                     ));
+                },
+                'meta' => function() use ($post) {
+                    return array(
+                        'title' => $post->getMetaTitle() != '' ? $post->getMetaTitle() : $post->getTitle(),
+                        'description' => $post->getMetaDescription(),
+                        'keyword' => $post->getMetaKeywords()
+                    );
                 }
             );
         } else {

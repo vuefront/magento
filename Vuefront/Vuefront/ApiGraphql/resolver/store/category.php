@@ -22,7 +22,7 @@ class ResolverStoreCategory extends Resolver
     public function get($args)
     {
         $this->load->model('store/category');
-
+        /** @var $category Magento\Catalog\Model\Category */
         if (!isset($args['category'])) {
             $category = $this->model_store_category->getCategory($args['id']);
         } else {
@@ -66,6 +66,13 @@ class ResolverStoreCategory extends Resolver
             },
             'keyword' => function () use ($category) {
                 return !empty($category->getUrlKey()) ? $category->getUrlKey().$this->_suffix: "";
+            },
+            'meta' => function() use ($category) {
+                return array(
+                    'title' => $category->getMetaTitle() != '' ? $category->getMetaTitle() : $category->getName(),
+                    'description' => $category->getMetaDescription(),
+                    'keyword' => $category->getMetaKeywords()
+                );
             }
         );
     }

@@ -56,6 +56,13 @@ class ResolverBlogCategory extends Resolver
                         'args' => $args,
                         'category' => $category
                     ));
+                },
+                'meta' => function() use ($category) {
+                    return array(
+                        'title' => $category->getMetaTitle() != '' ? $category->getMetaTitle() : $category->getTitle(),
+                        'description' => $category->getMetaDescription(),
+                        'keyword' => $category->getMetaKeywords()
+                    );
                 }
             );
         } else {

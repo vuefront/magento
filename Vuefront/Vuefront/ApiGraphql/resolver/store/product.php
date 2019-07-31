@@ -161,6 +161,13 @@ class ResolverStoreProduct extends Resolver
                     'args' => $args,
                     'product' => $product
                 ));
+            },
+            'meta' => function() use ($product) {
+                return array(
+                    'title' => $product->getMetaTitle() != '' ? $product->getMetaTitle() : $product->getName(),
+                    'description' => $product->getMetaDescription(),
+                    'keyword' => $product->getMetaKeywords()
+                );
             }
         );
     }
