@@ -4,9 +4,20 @@
     <img src="https://vuefront.com/logo.png" width="120"/>
   </a>
 </p>
-<h1 align="center">VueFront <a href="https://packagist.org/packages/vuefront/module-vuefront"><img src="https://poser.pugx.org/vuefront/module-vuefront/v/stable" /></a></h1>
+<h1 align="center">VueFront</h1>
 <h3 align="center">CMS Connect App for Magento
 </h3>
+
+<p align="center">
+  <a href="https://github.com/vuefront/vuefront"><img src="https://img.shields.io/badge/price-FREE-0098f7.svg" alt="Version"></a>
+   <a href="https://packagist.org/packages/vuefront/module-vuefront"><img src="https://poser.pugx.org/vuefront/module-vuefront/v/stable" /></a>
+  <a href="https://discord.gg/C9vcTCQ"><img src="https://img.shields.io/badge/chat-on%20discord-7289da.svg" alt="Chat"></a>
+</p>
+
+<p align="center">
+Show your :heart: - give us a :star: <br/> 
+Help us grow this project to be the best it can be!
+  </p>
 
 VueFront is a <a href="//vuejs.org">Vue-powered</a> agnostic frontend web app for your old fashioned Blog and Ecommerce site. 
 
