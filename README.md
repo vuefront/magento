@@ -19,12 +19,16 @@ Show your :heart: - give us a :star: <br/>
 Help us grow this project to be the best it can be!
   </p>
 
-VueFront is a <a href="//vuejs.org">Vue-powered</a> agnostic frontend web app for your old fashioned Blog and Ecommerce site. 
 
-Magento empowers thousands of retailers and brands with the best eCommerce platforms and flexible cloud solutions to rapidly innovate and grow.
+__VueFront__ is a <a href="//vuejs.org">VueJS powered</a> CMS agnostic SPA & PWA frontend for your old-fashioned Blog and E-commerce site. 
 
-CMS Connect App - adds the connection between the Magento CMS and VueFront WebApp via a GraphQL API.
+__Magento__ empowers thousands of retailers and brands with the best eCommerce platforms and flexible cloud solutions to rapidly innovate and grow.
 
+__CMS Connect App__ - adds the connection between the Magento CMS and VueFront WebApp via a GraphQL API.
+  
+# Demo
+
+[VueFront on Magento](https://magento.vuefront.com/)
 
 ## How to install & upgrade VueFront
 
