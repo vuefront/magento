@@ -14,8 +14,8 @@ Magento empowers thousands of retailers and brands with the best eCommerce platf
 
 CMS Connect App - adds the connection between the Magento CMS and VueFront WebApp via a GraphQL API.
 
-[![Latest Stable Version](https://poser.pugx.org/mageplaza/module-core/v/stable)](https://packagist.org/packages/vuefront/vuefront)
-[![Total Downloads](https://poser.pugx.org/vuefront/vuefront/downloads)](https://packagist.org/packages/vuefront/vuefront)
+[![Latest Stable Version](https://poser.pugx.org/mageplaza/module-core/v/stable)](https://packagist.org/packages/vuefront/module-vuefront)
+[![Total Downloads](https://poser.pugx.org/vuefront/module-vuefront/downloads)](https://packagist.org/packages/vuefront/module-vuefront)
 
 ## How to install & upgrade VueFront
 
@@ -28,7 +28,7 @@ Run the following command in Magento 2 root folder.
 #### 1.1 Install
 
 ```
-composer require vuefront/vuefront
+composer require vuefront/module-vuefront
 php bin/magento setup:upgrade
 php bin/magento setup:static-content:deploy
 ```
@@ -36,7 +36,7 @@ php bin/magento setup:static-content:deploy
 #### 1.2 Upgrade
 
 ```
-composer update vuefront/vuefront
+composer update vuefront/module-vuefront
 php bin/magento setup:upgrade
 php bin/magento setup:static-content:deploy
 ```
