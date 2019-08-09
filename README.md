@@ -4,7 +4,7 @@
     <img src="https://vuefront.com/logo.png" width="120"/>
   </a>
 </p>
-<h1 align="center">VueFront</h1>
+<h1 align="center">VueFront [![Latest Stable Version](https://poser.pugx.org/vuefront/module-vuefront/v/stable)](https://packagist.org/packages/vuefront/module-vuefront)</h1>
 <h3 align="center">CMS Connect App for Magento
 </h3>
 
@@ -14,8 +14,6 @@ Magento empowers thousands of retailers and brands with the best eCommerce platf
 
 CMS Connect App - adds the connection between the Magento CMS and VueFront WebApp via a GraphQL API.
 
-[![Latest Stable Version](https://poser.pugx.org/mageplaza/module-core/v/stable)](https://packagist.org/packages/vuefront/module-vuefront)
-[![Total Downloads](https://poser.pugx.org/vuefront/module-vuefront/downloads)](https://packagist.org/packages/vuefront/module-vuefront)
 
 ## How to install & upgrade VueFront
 
