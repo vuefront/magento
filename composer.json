@@ -1,5 +1,5 @@
 {
-  "name": "vuefront/vuefront",
+  "name": "vuefront/module-vuefront",
   "description": "Vuefront api for magento2",
   "type": "magento2-module",
   "version": "0.1.0",
