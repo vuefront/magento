@@ -4,7 +4,7 @@
     <img src="https://vuefront.com/logo.png" width="120"/>
   </a>
 </p>
-<h1 align="center">VueFront [![Latest Stable Version](https://poser.pugx.org/vuefront/module-vuefront/v/stable)](https://packagist.org/packages/vuefront/module-vuefront)</h1>
+<h1 align="center">VueFront <a href="https://packagist.org/packages/vuefront/module-vuefront"><img src="https://poser.pugx.org/vuefront/module-vuefront/v/stable" /></a></h1>
 <h3 align="center">CMS Connect App for Magento
 </h3>
 
