@@ -56,7 +56,7 @@ class Compare extends Model
             if ($key !== false) {
                 unset($compare[$key]);
             }
-            $this->_sessionManager->getCompare($compare);
+            $this->_sessionManager->setCompare($compare);
         }
     }
 }
