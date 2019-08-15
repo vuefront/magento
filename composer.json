@@ -5,6 +5,7 @@
   "version": "0.1.0",
   "require": {
     "webonyx/graphql-php": "0.12.6",
+    "magefan/module-blog": "2.8.10",
     "ext-json": "*"
   },
   "license": [
