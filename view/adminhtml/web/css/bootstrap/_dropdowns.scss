@@ -11,7 +11,8 @@
   margin-left: 2px;
   vertical-align: middle;
   border-top: $caret-width-base dashed;
-  border-top: $caret-width-base solid \9; // IE8
+  border-top: $caret-width-base solid \9
+; // IE8
   border-right: $caret-width-base solid transparent;
   border-left: $caret-width-base solid transparent;
 }
@@ -135,6 +136,7 @@
   right: 0;
   left: auto; // Reset the default from `.dropdown-menu`
 }
+
 // With v3, we enabled auto-flipping if you have a dropdown within a right
 // aligned nav component. To enable the undoing of that, we provide an override
 // to restore the default dropdown menu alignment.
@@ -184,8 +186,10 @@
     content: "";
     border-top: 0;
     border-bottom: $caret-width-base dashed;
-    border-bottom: $caret-width-base solid \9; // IE8
+    border-bottom: $caret-width-base solid \9
+  ; // IE8
   }
+
   // Different positioning for bottom up menu
   .dropdown-menu {
     top: auto;
@@ -202,12 +206,15 @@
 @media (min-width: $grid-float-breakpoint) {
   .navbar-right {
     .dropdown-menu {
-      right: 0; left: auto;
+      right: 0;
+      left: auto;
     }
+
     // Necessary for overrides of the default right aligned menu.
     // Will remove come v4 in all likelihood.
     .dropdown-menu-left {
-      left: 0; right: auto;
+      left: 0;
+      right: auto;
     }
   }
 }

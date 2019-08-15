@@ -1,4 +1,5 @@
 <?php
+
 namespace Vuefront\Vuefront\Controller\Adminhtml\Setting;
 
 class Index extends \Magento\Backend\App\Action
@@ -15,7 +16,6 @@ class Index extends \Magento\Backend\App\Action
 
     public function execute()
     {
-        return $resultPage = $this->resultPageFactory->create(false, array('test'=>'test'));
+        return $resultPage = $this->resultPageFactory->create(false, ['test' => 'test']);
     }
 }
-?>

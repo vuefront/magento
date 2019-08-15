@@ -1,11 +1,14 @@
 <?xml version="1.0"?>
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
-    <preference for="Vuefront\Vuefront\Api\GraphqlInterface" type="Vuefront\Vuefront\Model\GraphqlModel" />
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <preference for="Vuefront\Vuefront\Api\GraphqlInterface" type="Vuefront\Vuefront\Model\GraphqlModel"/>
+
+    <preference for="Magento\Framework\Webapi\ServiceOutputProcessor" type="Vuefront\Vuefront\Model\ServiceOutputProcessor" />
 
     <type name="Magento\Framework\Webapi\Rest\Request">
-        <plugin name="cors_request_options" type="Vuefront\Vuefront\Plugin\CorsRequestOptionsPlugin" />
+        <plugin name="cors_request_options" type="Vuefront\Vuefront\Plugin\CorsRequestOptionsPlugin"/>
     </type>
     <type name="Magento\Webapi\Controller\Rest\Router">
-        <plugin name="cors_request_match" type="Vuefront\Vuefront\Plugin\CorsRequestMatchPlugin" />
+        <plugin name="cors_request_match" type="Vuefront\Vuefront\Plugin\CorsRequestMatchPlugin"/>
     </type>
 </config>

@@ -1,19 +1,20 @@
 <?php
 
 namespace Vuefront\Vuefront\Api;
+
 interface GraphqlInterface
 {
     /**
      * Get graphql
-     * @api
      * @return string
+     * @api
      */
     public function graphql();
 
     /**
      * Cors check
+     * @return array
      * @api
-     * @return string
      */
     public function cors();
 }

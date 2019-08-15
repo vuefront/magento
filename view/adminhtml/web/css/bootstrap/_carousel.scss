@@ -70,9 +70,11 @@
   > .next {
     left: 100%;
   }
+
   > .prev {
     left: -100%;
   }
+
   > .next.left,
   > .prev.right {
     left: 0;
@@ -81,6 +83,7 @@
   > .active.left {
     left: -100%;
   }
+
   > .active.right {
     left: 100%;
   }
@@ -109,6 +112,7 @@
   &.left {
     @include gradient-horizontal($start-color: rgba(0, 0, 0, .5), $end-color: rgba(0, 0, 0, .0001));
   }
+
   &.right {
     right: 0;
     left: auto;
@@ -135,16 +139,19 @@
     display: inline-block;
     margin-top: -10px;
   }
+
   .icon-prev,
   .glyphicon-chevron-left {
     left: 50%;
     margin-left: -10px;
   }
+
   .icon-next,
   .glyphicon-chevron-right {
     right: 50%;
     margin-right: -10px;
   }
+
   .icon-prev,
   .icon-next {
     width: 20px;
@@ -155,12 +162,13 @@
 
   .icon-prev {
     &:before {
-      content: "\2039";// SINGLE LEFT-POINTING ANGLE QUOTATION MARK (U+2039)
+      content: "\2039"; // SINGLE LEFT-POINTING ANGLE QUOTATION MARK (U+2039)
     }
   }
+
   .icon-next {
     &:before {
-      content: "\203a";// SINGLE RIGHT-POINTING ANGLE QUOTATION MARK (U+203A)
+      content: "\203a"; // SINGLE RIGHT-POINTING ANGLE QUOTATION MARK (U+203A)
     }
   }
 }
@@ -197,7 +205,8 @@
     //
     // For IE8, we set solid black as it doesn't support `rgba()`. For IE9, we
     // set alpha transparency for the best results possible.
-    background-color: #000 \9; // IE8
+    background-color: #000 \9
+  ; // IE8
     background-color: rgba(0, 0, 0, 0); // IE9
 
     border: 1px solid $carousel-indicator-border-color;
@@ -247,10 +256,12 @@
       margin-top: ($carousel-control-font-size / -2);
       font-size: ($carousel-control-font-size * 1.5);
     }
+
     .glyphicon-chevron-left,
     .icon-prev {
       margin-left: ($carousel-control-font-size / -2);
     }
+
     .glyphicon-chevron-right,
     .icon-next {
       margin-right: ($carousel-control-font-size / -2);

@@ -7,7 +7,6 @@ use Magento\Webapi\Controller\Rest\Router;
 
 class CorsRequestMatchPlugin
 {
-
     private $request;
 
     protected $routeFactory;
@@ -24,14 +23,14 @@ class CorsRequestMatchPlugin
         Router $subject,
         callable $proceed,
         Request $request
-    )
-    {
+    ) {
         try {
             $returnValue = $proceed($request);
         } catch (\Magento\Framework\Webapi\Exception $e) {
             $requestHttpMethod = $this->request->getHttpMethod();
 
-            if ($requestHttpMethod == 'OPTIONS' && strpos($this->request->getRequestUri(), 'vuefront') > 0) {
+            $position = strpos($this->request->getRequestUri(), 'vuefront');
+            if ($requestHttpMethod === 'OPTIONS' && $position > 0) {
                 return $this->createRoute();
             } else {
                 throw $e;
@@ -43,11 +42,11 @@ class CorsRequestMatchPlugin
     protected function createRoute()
     {
         $route = $this->routeFactory->createRoute(
-            'Magento\Webapi\Controller\Rest\Router\Route',
+            \Magento\Webapi\Controller\Rest\Router\Route::class,
             '/V1/vuefront/cors'
         );
 
-        $route->setServiceClass('Vuefront\Vuefront\Api\GraphqlInterface')
+        $route->setServiceClass(\Vuefront\Vuefront\Api\GraphqlInterface::class)
             ->setServiceMethod('cors')
             ->setSecure(false)
             ->setAclResources(['anonymous'])
@@ -55,5 +54,4 @@ class CorsRequestMatchPlugin
 
         return $route;
     }
-
 }

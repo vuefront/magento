@@ -61,7 +61,8 @@ input[type="search"] {
 input[type="radio"],
 input[type="checkbox"] {
   margin: 4px 0 0;
-  margin-top: 1px \9; // IE8-9
+  margin-top: 1px \9
+; // IE8-9
   line-height: normal;
 
   // Apply same disabled cursor tweak as for inputs
@@ -251,12 +252,14 @@ textarea.form-control {
     cursor: pointer;
   }
 }
+
 .radio input[type="radio"],
 .radio-inline input[type="radio"],
 .checkbox input[type="checkbox"],
 .checkbox-inline input[type="checkbox"] {
   position: absolute;
-  margin-top: 4px \9;
+  margin-top: 4px \9
+;
   margin-left: -20px;
 }
 
@@ -282,6 +285,7 @@ textarea.form-control {
     cursor: $cursor-disabled;
   }
 }
+
 .radio-inline + .radio-inline,
 .checkbox-inline + .checkbox-inline {
   margin-top: 0;
@@ -327,14 +331,17 @@ textarea.form-control {
     line-height: $line-height-small;
     border-radius: $input-border-radius-small;
   }
+
   select.form-control {
     height: $input-height-small;
     line-height: $input-height-small;
   }
+
   textarea.form-control,
   select[multiple].form-control {
     height: auto;
   }
+
   .form-control-static {
     height: $input-height-small;
     min-height: ($line-height-computed + $font-size-small);
@@ -353,14 +360,17 @@ textarea.form-control {
     line-height: $line-height-large;
     border-radius: $input-border-radius-large;
   }
+
   select.form-control {
     height: $input-height-large;
     line-height: $input-height-large;
   }
+
   textarea.form-control,
   select[multiple].form-control {
     height: auto;
   }
+
   .form-control-static {
     height: $input-height-large;
     min-height: ($line-height-computed + $font-size-large);
@@ -384,6 +394,7 @@ textarea.form-control {
     padding-right: ($input-height-base * 1.25);
   }
 }
+
 // Feedback icon (requires .glyphicon classes)
 .form-control-feedback {
   position: absolute;
@@ -397,6 +408,7 @@ textarea.form-control {
   text-align: center;
   pointer-events: none;
 }
+
 .input-lg + .form-control-feedback,
 .input-group-lg + .form-control-feedback,
 .form-group-lg .form-control + .form-control-feedback {
@@ -404,6 +416,7 @@ textarea.form-control {
   height: $input-height-large;
   line-height: $input-height-large;
 }
+
 .input-sm + .form-control-feedback,
 .input-group-sm + .form-control-feedback,
 .form-group-sm .form-control + .form-control-feedback {
@@ -416,9 +429,11 @@ textarea.form-control {
 .has-success {
   @include form-control-validation($state-success-text, $state-success-text, $state-success-bg);
 }
+
 .has-warning {
   @include form-control-validation($state-warning-text, $state-warning-text, $state-warning-bg);
 }
+
 .has-error {
   @include form-control-validation($state-danger-text, $state-danger-text, $state-danger-bg);
 }
@@ -429,6 +444,7 @@ textarea.form-control {
   & ~ .form-control-feedback {
     top: ($line-height-computed + 5); // Height of the `label` and its margin
   }
+
   &.sr-only ~ .form-control-feedback {
     top: 0;
   }
@@ -529,11 +545,11 @@ textarea.form-control {
     }
   }
 }
+
 // [converter] extracted as `@mixin form-inline` for libsass compatibility
 .form-inline {
   @include form-inline;
 }
-
 
 
 // Horizontal forms
@@ -554,6 +570,7 @@ textarea.form-control {
     margin-top: 0;
     margin-bottom: 0;
   }
+
   // Account for padding we're adding to ensure the alignment and of help text
   // and other content below items
   .radio,
@@ -596,6 +613,7 @@ textarea.form-control {
       }
     }
   }
+
   .form-group-sm {
     @media (min-width: $screen-sm-min) {
       .control-label {

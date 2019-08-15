@@ -9,8 +9,10 @@
   text-align: center;
   list-style: none;
   @include clearfix;
+
   li {
     display: inline;
+
     > a,
     > span {
       display: inline-block;

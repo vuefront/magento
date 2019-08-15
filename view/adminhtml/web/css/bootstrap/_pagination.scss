@@ -29,6 +29,7 @@
         border-color: $pagination-hover-border;
       }
     }
+
     &:first-child {
       > a,
       > span {
@@ -36,6 +37,7 @@
         @include border-left-radius($border-radius-base);
       }
     }
+
     &:last-child {
       > a,
       > span {
