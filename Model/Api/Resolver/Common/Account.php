@@ -25,11 +25,13 @@ class Account extends Resolver
     {
         $this->_customer->setWebsiteId($this->store->getWebsiteId());
         $customer = $this->_customer->loadByEmail($args["email"]);
-
         if ($customer->validatePassword($args["password"])) {
             $this->_sessionFactory->setCustomerAsLoggedIn($customer);
 
-            return $this->get($customer);
+            return [
+                'token' => null,
+                'customer' => $this->get($customer)
+            ];
         } else {
             throw new \Magento\Framework\Exception\AuthenticationException(
                 __('Warning: No match for E-Mail Address and/or Password.')

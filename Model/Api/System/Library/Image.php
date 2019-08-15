@@ -49,7 +49,7 @@ class Image
 
         $resizedURL = $this->storeManager->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA)
             . 'resized/' . $width . '/' . $imageName;
-        $resizedURL = str_replace('//', '/', $resizedURL);
+
         return $resizedURL;
     }
 

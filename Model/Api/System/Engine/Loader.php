@@ -16,6 +16,7 @@ class Loader
         \Vuefront\Vuefront\Model\Api\Resolver\Blog\Review $reviewBlog,
         \Vuefront\Vuefront\Model\Api\Resolver\Common\Account $account,
         \Vuefront\Vuefront\Model\Api\Resolver\Common\Contact $contact,
+        \Vuefront\Vuefront\Model\Api\Resolver\Common\Country $country,
         \Vuefront\Vuefront\Model\Api\Resolver\Common\File $file,
         \Vuefront\Vuefront\Model\Api\Resolver\Common\Home $home,
         \Vuefront\Vuefront\Model\Api\Resolver\Common\Language $language,
@@ -47,6 +48,7 @@ class Loader
         $this->resolvers['Blog\Review'] = $reviewBlog;
         $this->resolvers['Common\Account'] = $account;
         $this->resolvers['Common\Contact'] = $contact;
+        $this->resolvers['Common\Country'] = $country;
         $this->resolvers['Common\File'] = $file;
         $this->resolvers['Common\Home'] = $home;
         $this->resolvers['Common\Language'] = $language;
