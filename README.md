@@ -37,6 +37,7 @@ Since Magento does not have a built-in Blog, we use [Megafan Blog Module](https:
 
 
 ## How to install?
+Php version required >= 5.5, <= 7.2 (this limitation will be removed in the future)
 
 ### 1. Quick Install via composer (recommended)
 
