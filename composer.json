@@ -2,7 +2,7 @@
   "name": "vuefront/module-vuefront",
   "description": "Vuefront api for magento2",
   "type": "magento2-module",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "require": {
     "webonyx/graphql-php": "0.12.6",
     "magefan/module-blog": "2.8.10",

@@ -21,6 +21,8 @@ class ServiceOutputProcessor extends \Magento\Framework\Webapi\ServiceOutputProc
 
         if ($serviceClassName == \Vuefront\Vuefront\Api\GraphqlInterface::class) {
             return $data;
+        } elseif ($serviceClassName == \Vuefront\Vuefront\Api\InformationInterface::class) {
+            return $data;
         } else {
             return $this->convertValue($data, $dataType);
         }

@@ -1,0 +1,18 @@
+<html>
+<head></head>
+<body>
+<vf-app class="vuefront-app"></vf-app>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', function (event) {
+  vuefront({
+    token: '<%= env.TOKEN %>',
+    selector: '.vuefront-app',
+    baseURL: '<%= env.BASE_URL %>',
+    siteUrl: '<%= env.SITE_URL %>',
+    apiURL: '',
+    type: 'magento'
+  })
+})
+</script>
+</body>
+</html>

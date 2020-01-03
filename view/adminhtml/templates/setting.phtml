@@ -2,101 +2,22 @@
     <?php
     $storeManager = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Store\Model\StoreManagerInterface::class);
     $moduleManager = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\Module\Manager::class);
+    $uriBuilder = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Backend\Model\UrlInterface::class);
+    $tokenModel = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Integration\Model\Oauth\Token::class);
+    $authModel = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Backend\Model\Auth\Session::class);
+    $adminUserId = $authModel->getUser()->getId();
     ?>
-  <div class="text-center module-content__image">
-    <img src='<?= $block->escapeUrl($block->getViewFileUrl("Vuefront_Vuefront::images/logo.png")); ?>' alt=""
-         style="width:200px;">
-  </div>
-  <div class="module-content__form">
-    <div class="module-content__row">
-      <h3 class="text-center mb-3">CMS Connect URL</h3>
-      <div class="input-group mb-2">
-        <input id="connect_url" class="form-control" type="text"
-               value="<?= $block->escapeUrl($storeManager->getStore()->getBaseUrl()) ?>rest/V1/vuefront/graphql" readonly>
-        <div class="input-group-btn">
-          <span class="btn btn-primary" id="copyButton" data-clipboard-target="#connect_url">copy</span>
-        </div>
-      </div>
-      <p class="module-content__description">
-        This is your CMS Connect URL link that shares your Store data via GraphQL. When installing VueFront via the
-        command line, you will be prompted to enter this URL. Simply copy and paste it into the command line.
-        <br/>
-        <br/>
-        Read more about the <a href="https://vuefront.com/cms/magento.html" target="_blank">CMS Connect for Magento</a>
-      </p>
-    </div>
-    <hr/>
-    <div class="module-content__row">
-      <h3 class="text-center mb-3" style="border-bottom: 0;">Blog support</h3>
-      <div class="text-center">
-            <?php if ($moduleManager->isOutputEnabled('Magefan_Blog')) {
-                ?>
-            <span class="btn btn-success">Blog enabled</span>
-                <?php
-            } else {
-                ?>
-            <a class="btn btn-danger" href="https://marketplace.magento.com/magefan-module-blog.html
-" target="_blank">Blog disabled</a>
-                <?php
-            } ?>
-        <p class="module-content__description">
-          VueFront relies on the free <a href="https://marketplace.magento.com/magefan-module-blog.html
-        " target="_blank">Blog Module</a> by MegaFan to implement blog support. The blog feature is optional and
-          VueFront will
-          work fine without it. You can install it via Composer or Magento Marketplace.
-        </p>
-      </div>
-    </div>
-  </div>
+    <vf-app class="vuefront-app"></vf-app>
 </div>
 <script lang="text/javascript">
-function copyToClipboard(elem) {
-  var targetId = '_hiddenCopyText_'
-  var isInput = elem.tagName === 'INPUT' || elem.tagName === 'TEXTAREA'
-  var origSelectionStart, origSelectionEnd
-  if (isInput) {
-    target = elem
-    origSelectionStart = elem.selectionStart
-    origSelectionEnd = elem.selectionEnd
-  } else {
-    target = document.getElementById(targetId)
-    if (!target) {
-      var target = document.createElement('textarea')
-      target.style.position = 'absolute'
-      target.style.left = '-9999px'
-      target.style.top = '0'
-      target.id = targetId
-      document.body.appendChild(target)
-    }
-    target.textContent = elem.textContent
-  }
-  var currentFocus = document.activeElement
-  target.focus()
-  target.setSelectionRange(0, target.value.length)
-
-  var succeed
-  try {
-    succeed = document.execCommand('copy')
-  } catch (e) {
-    succeed = false
-  }
-  if (currentFocus && typeof currentFocus.focus === 'function') {
-    currentFocus.focus()
-  }
-
-  if (isInput) {
-    elem.setSelectionRange(origSelectionStart, origSelectionEnd)
-  } else {
-    target.textContent = ''
-  }
-  return succeed
-}
-
-document.getElementById('copyButton').addEventListener('click', function () {
-  if (copyToClipboard(document.getElementById('connect_url'))) {
-    document.getElementById('copyButton').innerText = 'copied!'
-    document.getElementById('copyButton').classList.add('btn-success')
-    document.getElementById('copyButton').classList.remove('btn-primary')
-  }
-})
+require(['vuefront'], function(){
+  vuefront({
+    selector: '.vuefront-app',
+    token: '<?= $block->escapeUrl($tokenModel->createAdminToken($adminUserId)->getToken()) ?>',
+    baseURL: '<?= $block->escapeUrl($storeManager->getStore()->getBaseUrl()) ?>',
+    siteUrl: '<?= $block->escapeUrl($storeManager->getStore()->getBaseUrl()) ?>',
+    apiURL: '',
+    type: 'magento'
+  })
+});
 </script>

@@ -5,8 +5,7 @@
         <title>
             Vuefront
         </title>
-        <css src="Vuefront_Vuefront::css/admin.css"/>
-        <css src="Vuefront_Vuefront::css/bootstrap.css"/>
+        <css src="Vuefront_Vuefront::js/vuefront/custom.css"/>
     </head>
     <body>
         <referenceContainer name="content">

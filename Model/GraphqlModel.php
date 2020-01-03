@@ -46,12 +46,12 @@ class GraphqlModel implements GraphqlInterface
             } else {
                 $this->response->setHeader('Access-Control-Allow-Origin', '*');
             }
-            $this->response->setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+            $this->response->setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
             $this->response->setHeader('Access-Control-Allow-Credentials', 'true');
             $this->response->setHeader(
                 'Access-Control-Allow-Headers',
                 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,' .
-                'Content-Type,Range,Token,token,Cookie,cookie,content-type'
+                'Content-Type,Range,Token,token,Cookie,cookie,content-type,Authorization'
             );
         }
     }

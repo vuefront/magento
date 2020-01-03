@@ -5,7 +5,7 @@
 
         <add id="Vuefront_Vuefront::vuefront" title="Vuefront" translate="title" module="Vuefront_Vuefront"
              sortOrder="91" dependsOnModule="Vuefront_Vuefront" resource="Vuefront_Vuefront::vuefront"/>
-        <add id="Vuefront_Vuefront::vuefront_info" title="Information" translate="title" module="Vuefront_Vuefront"
+        <add id="Vuefront_Vuefront::vuefront_info" title="Administration" translate="title" module="Vuefront_Vuefront"
              parent="Vuefront_Vuefront::vuefront" sortOrder="10" dependsOnModule="Vuefront_Vuefront"
              action="vuefront/setting" resource="Vuefront_Vuefront::vuefront"/>
         <add id="Vuefront_Vuefront::vuefront_setting" title="Setting" module="Vuefront_Vuefront" sortOrder="20"

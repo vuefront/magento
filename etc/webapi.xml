@@ -7,4 +7,16 @@
             <resource ref="anonymous"/>
         </resources>
     </route>
+    <route url="/V1/vuefront/information/:id" method="POST">
+        <service class="Vuefront\Vuefront\Api\InformationInterface" method="info"/>
+        <resources>
+            <resource ref="Vuefront_Vuefront::information" />
+        </resources>
+    </route>
+    <route url="/V1/vuefront/information/:id" method="GET">
+        <service class="Vuefront\Vuefront\Api\InformationInterface" method="info"/>
+        <resources>
+            <resource ref="Vuefront_Vuefront::information" />
+        </resources>
+    </route>
 </routes>
