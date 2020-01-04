@@ -306,6 +306,7 @@ RewriteRule ^([^?]*) vuefront/200.html [L,QSA]";
     {
         try {
             $rootFolder = $this->driverFile->getRealPath($this->dir->getRoot());
+            $pubFolder = $this->driverFile->getRealPath($this->dir->getPath('pub'));
             $moduleDir = $this->moduleReader->getModuleDir(
                 \Magento\Framework\Module\Dir::MODULE_VIEW_DIR,
                 'Vuefront_Vuefront'
@@ -315,9 +316,15 @@ RewriteRule ^([^?]*) vuefront/200.html [L,QSA]";
                 $moduleDir . '/adminhtml/web/js/download.tar',
                 $this->driverFile->fileGetContents($this->request->getBodyParams()['url'])
             );
-            $this->file->rmdirRecursive($rootFolder . '/vuefront');
+            if (strpos($this->request->getServerValue("SERVER_SOFTWARE"), "Apache") !== false) {
+                $this->file->rmdirRecursive($rootFolder . '/vuefront');
 
-            $this->arhiveTar->unpack($moduleDir . '/adminhtml/web/js/download.tar', $rootFolder . '/vuefront//');
+                $this->arhiveTar->unpack($moduleDir . '/adminhtml/web/js/download.tar', $rootFolder . '/vuefront//');
+            } else {
+                $this->file->rmdirRecursive($pubFolder . '/vuefront');
+
+                $this->arhiveTar->unpack($moduleDir . '/adminhtml/web/js/download.tar', $pubFolder . '/vuefront//');
+            }
 
             $this->file->rm($moduleDir . '/adminhtml/web/js/download.tar');
         } catch (\Exception $e) {
