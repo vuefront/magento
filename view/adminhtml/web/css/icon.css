@@ -1,0 +1,13 @@
+@font-face {
+  font-family:'Vuefront';
+  src:url('../fonts/icomoon.eot');
+  src:url('../fonts/icomoon.eot?#iefix') format('embedded-opentype'),url('../fonts/icomoon.woff') format('woff'),url('../fonts/icomoon.ttf') format('truetype'),url('../fonts/icomoon.svg') format('svg');font-weight:normal;font-style:normal
+}
+
+#menu-vuefront-vuefront-vuefront > a::before {
+  content: "\e900";
+  color: #9ea3a8;
+  font-size: 3.0rem;
+  margin-bottom: 10px;
+  font-family:'Vuefront';
+}
