@@ -143,7 +143,7 @@ RewriteRule ^([^?]*) vuefront/200.html [L,QSA]
 ```
 
 ## Deploy VueFront Web App to Nginx hosting (static website)
-Same as for apache only you are required to add the server configurations yourself:
+Same as for apache only you are required to add the server configurations yourself and the vuefront folder has a different path of `./pub/vuefront`:
 
 ### via VueFront Deploy service (recommended)
 1. Install the VueFront CMS Connect App from this repo.
@@ -160,7 +160,7 @@ location ~ ^((?!image|.php|admin|catalog|\/img\/.*\/|wp-json|wp-admin|wp-content
 1. Install the VueFront CMS Connect App from this repo.
 2. Log in or register an account with VueFront.com
 3. Copy the CMS Connect URL 
-4. Via Ftp create a new folder `ROOT/pub/vuefront` of your Magento site on your hosting. 
+4. Via Ftp create a new folder `./pub/vuefront` of your Magento site on your hosting. 
 5. Via the command line build your VueFront Web App ([read more](https://vuefront.com/guide/setup.html)) 
 ```
 yarn create vuefront-app
