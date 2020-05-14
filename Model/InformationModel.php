@@ -36,7 +36,7 @@ class InformationModel implements InformationInterface
         \Magento\Framework\Webapi\Rest\Request $request,
         \Magento\Framework\Filesystem\Driver\File $driver,
         \Magento\Catalog\Model\ResourceModel\Product\CollectionFactory $productFactory,
-        \Vuefront\Vuefront\Model\ResourceModel\Apps\Collection $appsFactory,
+//        \Vuefront\Vuefront\Model\ResourceModel\Apps\Collection $appsFactory,
         \Vuefront\Vuefront\Model\Api\System\Startup $startup,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Magento\Framework\Module\Manager $moduleManager,
@@ -47,7 +47,8 @@ class InformationModel implements InformationInterface
         \Zend\Uri\Http $zendHttp,
         \Zend\Validator\File\Exists $zendFileExists,
         \Magento\Framework\Filesystem\Io\File $file,
-        \Magento\Framework\Archive\Tar $arhiveTar
+        \Magento\Framework\Archive\Tar $arhiveTar,
+        \Vuefront\Vuefront\Model\AppsFactory $appsFactory
     ) {
         $this->scopeConfig = $scopeConfig;
         $this->context = $context;
@@ -338,8 +339,13 @@ RewriteRule ^([^?]*) vuefront/200.html [L,QSA]";
     }
 
     public function vfApps() {
-        $result = $this->appsFactory->addFieldToSelect('*')->load();
-        var_dump($result);
+        $apps = $this->appsFactory->create();
+        $collection = $apps->getCollection();
+
+        foreach ($collection as $key => $value) {
+            var_dump($value->getData());
+        }
+
         return [];
     }
 
