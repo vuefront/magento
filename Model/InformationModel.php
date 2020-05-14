@@ -26,6 +26,7 @@ class InformationModel implements InformationInterface
     protected $request;
     protected $startup;
     protected $collectionFactory;
+    protected $appsFactory;
 
     public function __construct(
         Context $context,
@@ -35,6 +36,7 @@ class InformationModel implements InformationInterface
         \Magento\Framework\Webapi\Rest\Request $request,
         \Magento\Framework\Filesystem\Driver\File $driver,
         \Magento\Catalog\Model\ResourceModel\Product\CollectionFactory $productFactory,
+        \Vuefront\Vuefront\Model\ResourceModel\Apps\Collection $appsFactory,
         \Vuefront\Vuefront\Model\Api\System\Startup $startup,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Magento\Framework\Module\Manager $moduleManager,
@@ -56,6 +58,7 @@ class InformationModel implements InformationInterface
         $this->startup = $startup;
         $this->driver = $driver;
         $this->collectionFactory = $productFactory;
+        $this->appsFactory = $appsFactory;
         $this->moduleManager = $moduleManager;
         $this->storeManager = $storeManager;
         $this->moduleList = $moduleList;
@@ -115,7 +118,7 @@ class InformationModel implements InformationInterface
             \Magento\Framework\Module\Dir::MODULE_VIEW_DIR,
             'Vuefront_Vuefront'
         );
-        
+
         $catalog = $this->storeManager->getStore()->getBaseUrl() . "rest/V1/vuefront/graphql";
 
         $is_apache = strpos($this->request->getServerValue("SERVER_SOFTWARE"), "Apache") !== false;
@@ -334,12 +337,28 @@ RewriteRule ^([^?]*) vuefront/200.html [L,QSA]";
         return $this->vfInformation();
     }
 
+    public function vfApps() {
+        $result = $this->appsFactory->addFieldToSelect('*')->load();
+        var_dump($result);
+        return [];
+    }
+
+    public function vfAppsCreate() {
+        return [];
+    }
+
     public function info()
     {
         $result = [];
         $this->checkCors();
 
         switch ($this->request->getParam('id')) {
+            case 'vf_apps':
+                $result = $this->vfApps();
+                break;
+            case 'vf_apps_create':
+                $result = $this->vfAppsCreate();
+                break;
             case 'vf_information':
                 $result = $this->vfInformation();
                 break;

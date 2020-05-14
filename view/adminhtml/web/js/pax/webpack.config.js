@@ -8,7 +8,6 @@ const CleanWebpackPlugin = require('clean-webpack-plugin').CleanWebpackPlugin
 const webpack = require('webpack')
 const WebpackBar = require('webpackbar')
 const url = require('url')
-const zlib = require('zlib')
 const _ = require('lodash')
 const fs = require('fs')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
@@ -23,7 +22,6 @@ const host = process.env.HOST || 'localhost'
 const port = process.env.PORT || '3000'
 const analyzer = process.env.ANALYZER || false
 const siteUrl = process.env.SITE_URL
-const baseUrl = process.env.BASE_URL
 
 module.exports = (env, argv) => {
   const isDev = argv.mode === 'development'
@@ -223,20 +221,6 @@ module.exports = (env, argv) => {
     ]
   }
 }
-const loadConfig = () => {
-  let configFile = false
-  let currentDir = false
-  do {
-    currentDir = currentDir
-      ? path.resolve(currentDir, '../')
-      : path.resolve(__dirname, '../')
-    configFile = fs.existsSync(path.resolve(currentDir, './app'))
-  } while (!configFile)
-
-  return fs
-    .readFileSync(path.resolve(currentDir, './.htaccess'))
-    .toString('UTF-8')
-}
 
 const getRootDir = () => {
   let configFile = false
@@ -251,9 +235,6 @@ const getRootDir = () => {
   return currentDir
 }
 
-const getCurrentUrl = config => {
-  return `http://${/^#Domain:\s+(.*)/gm.exec(config)[1]}/`
-}
 const getDistRelativePath = () => {
   const cDir = path.resolve(getRootDir(), './')
   const nDir = path.resolve(__dirname, `../${paxConfig.codename}/`)
