@@ -27,6 +27,7 @@ class InformationModel implements InformationInterface
     protected $startup;
     protected $collectionFactory;
     protected $appsFactory;
+    protected $date;
 
     public function __construct(
         Context $context,
@@ -36,7 +37,6 @@ class InformationModel implements InformationInterface
         \Magento\Framework\Webapi\Rest\Request $request,
         \Magento\Framework\Filesystem\Driver\File $driver,
         \Magento\Catalog\Model\ResourceModel\Product\CollectionFactory $productFactory,
-//        \Vuefront\Vuefront\Model\ResourceModel\Apps\Collection $appsFactory,
         \Vuefront\Vuefront\Model\Api\System\Startup $startup,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Magento\Framework\Module\Manager $moduleManager,
@@ -48,7 +48,8 @@ class InformationModel implements InformationInterface
         \Zend\Validator\File\Exists $zendFileExists,
         \Magento\Framework\Filesystem\Io\File $file,
         \Magento\Framework\Archive\Tar $arhiveTar,
-        \Vuefront\Vuefront\Model\AppsFactory $appsFactory
+        \Vuefront\Vuefront\Model\AppsFactory $appsFactory,
+        \Magento\Framework\Stdlib\DateTime\DateTime $date
     ) {
         $this->scopeConfig = $scopeConfig;
         $this->context = $context;
@@ -70,6 +71,7 @@ class InformationModel implements InformationInterface
         $this->file = $file;
         $this->zendHttp = $zendHttp;
         $this->arhiveTar = $arhiveTar;
+        $this->date = $date;
     }
 
     public function checkCors()
@@ -342,14 +344,43 @@ RewriteRule ^([^?]*) vuefront/200.html [L,QSA]";
         $apps = $this->appsFactory->create();
         $collection = $apps->getCollection();
 
+        $result = [];
+
         foreach ($collection as $key => $value) {
-            var_dump($value->getData());
+            $data = $value->getData();
+            $result[] = [
+                'codename' => $data['codename'],
+                'jwt' => $data['jwt'],
+                'date_added' => $data['date_added']
+            ];
         }
 
+        return $result;
+    }
+
+    public function vfAppsCreate($post) {
+        $app = $this->appsFactory->create();
+        $app->setCodename($post['codename']);
+        $app->setJwt($post['jwt']);
+        $app->setDateAdded($this->date->gmtDate());
+        $app->save();
         return [];
     }
 
-    public function vfAppsCreate() {
+    public function vfAppsRemove($post) {
+        $app = $this->appsFactory->create()->getCollection();
+        $app->addFieldToSelect('*');
+        $app->setCurPage($post['key'] + 1);
+        $app->setPageSize(1);
+
+        $result = $app->load();
+
+        foreach ($result->getItems() as $key => $value) {
+            var_dump($value->getAppId());
+            $model = $this->appsFactory->create();
+            $model->load($value->getAppId());
+            $model->delete();
+        }
         return [];
     }
 
@@ -363,7 +394,10 @@ RewriteRule ^([^?]*) vuefront/200.html [L,QSA]";
                 $result = $this->vfApps();
                 break;
             case 'vf_apps_create':
-                $result = $this->vfAppsCreate();
+                $result = $this->vfAppsCreate($this->request->getBodyParams());
+                break;
+            case 'vf_apps_remove':
+                $result = $this->vfAppsRemove($this->request->getBodyParams());
                 break;
             case 'vf_information':
                 $result = $this->vfInformation();

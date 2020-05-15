@@ -37,6 +37,12 @@ class InstallSchema implements InstallSchemaInterface
             '64k',
             ['nullable' => true],
             'APP Jwt'
+        )->addColumn(
+            'date_added',
+            \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
+            255,
+            ['nullable' => true],
+            'App Date Added'
         )->setComment(
             'Vuefront APP Table'
         );
