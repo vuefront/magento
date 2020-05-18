@@ -41,7 +41,8 @@ class Loader
         \Vuefront\Vuefront\Model\Api\Model\Store\Compare $modelStoreCompare,
         \Vuefront\Vuefront\Model\Api\Model\Store\Product $modelStoreProduct,
         \Vuefront\Vuefront\Model\Api\Model\Store\Review $modelStoreReview,
-        \Vuefront\Vuefront\Model\Api\Model\Store\Wishlist $modelStoreWishlist
+        \Vuefront\Vuefront\Model\Api\Model\Store\Wishlist $modelStoreWishlist,
+        \Vuefront\Vuefront\Model\Api\Model\Store\Checkout $modelStoreCheckout
     ) {
         $this->resolvers['Blog\Post'] = $postBlog;
         $this->resolvers['Blog\Category'] = $blogCategory;
@@ -76,6 +77,7 @@ class Loader
         $this->models['Store\Product'] = $modelStoreProduct;
         $this->models['Store\Review'] = $modelStoreReview;
         $this->models['Store\Wishlist'] = $modelStoreWishlist;
+        $this->models['Store\Checkout'] = $modelStoreCheckout;
 
         $this->registry = $registry;
     }
