@@ -7,6 +7,7 @@ use Magento\Framework\Pricing\Helper\Data;
 use Magento\Framework\UrlInterface;
 use Magento\Shipping\Model\Config;
 use Vuefront\Vuefront\Model\Api\System\Engine\Resolver;
+use Magento\Store\Model\ScopeInterface;
 
 class Checkout extends Resolver
 {
@@ -41,6 +42,51 @@ class Checkout extends Resolver
      */
     protected $shippingInformation;
 
+    /**
+     * @var \Magento\Framework\App\Config\ScopeConfigInterface
+     */
+    protected $scopeConfig;
+
+    /**
+     * @var \Magento\Framework\Session\SessionManagerInterface
+     */
+    protected $_sessionManager;
+
+    /**
+     * @var \Magento\Store\Model\StoreManagerInterface
+     */
+    protected $storeManager;
+
+    /**
+     * @var \Magento\Customer\Model\CustomerFactory
+     */
+    protected $customerFactory;
+
+    /**
+     * @var \Magento\Catalog\Api\ProductRepositoryInterface
+     */
+    protected $productRepository;
+
+    /**
+     * @var \Magento\Customer\Api\CustomerRepositoryInterface
+     */
+    protected $customerRepository;
+
+    /**
+     * @var \Magento\Quote\Model\QuoteManagement
+     */
+    protected $quoteManagement;
+
+    /**
+     * @var \Magento\Sales\Model\Order\Email\Sender\OrderSender
+     */
+    protected $orderSender;
+
+    /**
+     * @var \Magento\Checkout\Model\Cart
+     */
+    protected $_cartModel;
+
     public function __construct(
         Config $shippingModelConfig,
         UrlInterface $url,
@@ -48,7 +94,16 @@ class Checkout extends Resolver
         Data $currencyHelper,
         \Magento\Quote\Api\Data\AddressInterface $address,
         \Magento\Checkout\Api\Data\ShippingInformationInterface $shippingInformation,
-        \Magento\Checkout\Api\ShippingInformationManagementInterface $shippingInformationManagement
+        \Magento\Checkout\Api\ShippingInformationManagementInterface $shippingInformationManagement,
+        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
+        \Magento\Framework\Session\SessionManagerInterface $sessionManager,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Customer\Model\CustomerFactory $customerFactory,
+        \Magento\Catalog\Api\ProductRepositoryInterface $productRepository,
+        \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
+        \Magento\Quote\Model\QuoteManagement $quoteManagement,
+        \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
+        \Magento\Checkout\Model\Cart $cartModel
     ) {
         $this->_currencyHelper = $currencyHelper;
         $this->url = $url;
@@ -57,6 +112,15 @@ class Checkout extends Resolver
         $this->address = $address;
         $this->shippingInformationManagement = $shippingInformationManagement;
         $this->shippingInformation = $shippingInformation;
+        $this->scopeConfig = $scopeConfig;
+        $this->_sessionManager = $sessionManager;
+        $this->storeManager = $storeManager;
+        $this->customerFactory = $customerFactory;
+        $this->productRepository = $productRepository;
+        $this->customerRepository = $customerRepository;
+        $this->quoteManagement = $quoteManagement;
+        $this->orderSender = $orderSender;
+        $this->_cartModel = $cartModel;
     }
 
     public function link()
@@ -132,6 +196,12 @@ class Checkout extends Resolver
 
         $fields[] = [
             'type' => 'text',
+            'name' => 'email',
+            'required' => true
+        ];
+
+        $fields[] = [
+            'type' => 'text',
             'name' => 'company',
             'required' => false
         ];
@@ -169,7 +239,11 @@ class Checkout extends Resolver
         $fields[] = [
             'type' => 'country',
             'name' => 'country_id',
-            'required' => true
+            'required' => true,
+            'defaultValue' => $this->scopeConfig->getValue(
+                'general/country/default',
+                ScopeInterface::SCOPE_WEBSITES
+            )
         ];
 
         $agree = null;
@@ -197,6 +271,12 @@ class Checkout extends Resolver
 
         $fields[] = [
             'type' => 'text',
+            'name' => 'email',
+            'required' => true
+        ];
+
+        $fields[] = [
+            'type' => 'text',
             'name' => 'company',
             'required' => false
         ];
@@ -234,7 +314,11 @@ class Checkout extends Resolver
         $fields[] = [
             'type' => 'country',
             'name' => 'country_id',
-            'required' => true
+            'required' => true,
+            'defaultValue' => $this->scopeConfig->getValue(
+                'general/country/default',
+                ScopeInterface::SCOPE_WEBSITES
+            )
         ];
 
         $fields[] = [
@@ -249,49 +333,65 @@ class Checkout extends Resolver
     public function createOrder($args)
     {
         $this->checkoutSession->regenerateId();
-        // $this->session->data['shipping_address'] = array();
 
-        // foreach ($this->shippingAddress() as $value) {
-        //     $this->session->data['shipping_address'][$value['name']] = '';
-        // }
+        $paymentAddress = [];
 
-        // $this->session->data['payment_address'] = array(
-        //     'custom_field' => array()
-        // );
+        foreach ($this->paymentAddress()['fields'] as $value) {
+            if(isset($value['defaultValue'])) {
+                $paymentAddress[$value['name']] = $value['defaultValue'];
+            } else {
+                $paymentAddress[$value['name']] = '';
+            }
+        }
 
-        // $paymentAddress = $this->paymentAddress();
-        // foreach ($paymentAddress['fields'] as $value) {
-        //     $this->session->data['payment_address'][$value['name']] = '';
-        // }
+        $this->_sessionManager->setPaymentAddress($paymentAddress);
 
-        // $this->session->data['payment_method'] = null;
-        // $this->session->data['shipping_method'] = null;
+        $shippingAddress = [];
+
+        foreach ($this->shippingAddress() as $value) {
+            if(isset($value['defaultValue'])) {
+                $shippingAddress[$value['name']] = $value['defaultValue'];
+            } else {
+                $shippingAddress[$value['name']] = '';
+            }
+        }
+
+        $this->_sessionManager->setShippingAddress($shippingAddress);
+
+        $this->_sessionManager->setPaymentMethod('');
+        $this->_sessionManager->setShippingMethod('');
+
         return ['success' => 'success'];
     }
 
     public function updateOrder($args)
     {
-        // foreach ($args['paymentAddress'] as $value) {
-        //     if (strpos($value['name'], "vfCustomField-") !== false) {
-        //         if ($value['value']) {
-        //             $field_name = str_replace("vfCustomField-", "", $value['name']);
-        //             $field_name = explode('-', $field_name);
-        //             if (!isset($this->session->data['payment_address']['custom_field'][$field_name[0]])) {
-        //                 $this->session->data['payment_address']['custom_field'][$field_name[0]] = array();
-        //             }
-        //             $this->session->data['payment_address']['custom_field'][$field_name[0]][$field_name[1]] = $value['value'];
-        //         }
-        //     } else {
-        //         if ($value['value']) {
-        //             $this->session->data['payment_address'][$value['name']] = $value['value'];
-        //         }
-        //     }
-        // }
+        $paymentAddress = [];
+
+        foreach ($this->paymentAddress()['fields'] as $value) {
+            if(isset($value['defaultValue'])) {
+                $paymentAddress[$value['name']] = $value['defaultValue'];
+            } else {
+                $paymentAddress[$value['name']] = '';
+            }
+        }
+
+        foreach ($args['paymentAddress'] as $value) {
+            if ($value['value']) {
+                $paymentAddress[$value['name']] = $value['value'];
+            }
+        }
+
+        $this->_sessionManager->setPaymentAddress($paymentAddress);
 
         $shippingAddress = [];
 
         foreach ($this->shippingAddress() as $value) {
-            $shippingAddress[$value['name']] = '';
+            if(isset($value['defaultValue'])) {
+                $shippingAddress[$value['name']] = $value['defaultValue'];
+            } else {
+                $shippingAddress[$value['name']] = '';
+            }
         }
 
         foreach ($args['shippingAddress'] as $value) {
@@ -299,6 +399,8 @@ class Checkout extends Resolver
                 $shippingAddress[$value['name']] = $value['value'];
             }
         }
+
+        $this->_sessionManager->setShippingAddress($shippingAddress);
 
         $shipping_address = $this->address
             ->setFirstname($shippingAddress['firstName'])
@@ -316,8 +418,6 @@ class Checkout extends Resolver
         $shipping_information = $this->shippingInformation->setShippingAddress($shipping_address);
 
         if (!empty($args['shippingMethod'])) {
-
-
             $methodInfo = explode('.', $args['shippingMethod']);
 
             $shipping_information = $shipping_information->setShippingCarrierCode($methodInfo[0])
@@ -335,7 +435,24 @@ class Checkout extends Resolver
             }
         }
 
-        // $this->session->data['payment_method'] = $args['paymentMethod'];
+        $payment_address = $this->address
+            ->setFirstname($paymentAddress['firstName'])
+            ->setLastname($paymentAddress['lastName'])
+            ->setStreet($paymentAddress['address1'])
+            ->setCity($paymentAddress['city'])
+            ->setCountryId($paymentAddress['country_id'])
+            ->setRegionId($paymentAddress['zone_id'])
+            // ->setRegion($region)
+            ->setPostcode($paymentAddress['postcode'])
+            ->setSaveInAddressBook(0)
+            ->setSameAsBilling(0);
+
+        $this->checkoutSession->getQuote()->setBillingAddress($payment_address);
+        $this->checkoutSession->getQuote()->setShippingAddress($shipping_address);
+
+        $this->_sessionManager->setPaymentMethod($args['paymentMethod']);
+        $this->_sessionManager->setShippingMethod($args['shippingMethod']);
+
         $that = $this;
         return [
             'paymentMethods' => function ($root, $args) use ($that) {
@@ -370,10 +487,83 @@ class Checkout extends Resolver
 
     public function confirmOrder()
     {
+
+        $store = $this->storeManager->getStore();
+        $storeId = $store->getStoreId();
+
+        $websiteId = $this->storeManager->getStore()->getWebsiteId();
+
+        $shippingAddress = $this->_sessionManager->getShippingAddress();
+        $paymentAddress = $this->_sessionManager->getPaymentAddress();
+
+        $shippingMethod = $this->_sessionManager->getShippingMethod();
+        $paymentMethod = $this->_sessionManager->getPaymentMethod();
+
+        $customer = $this->customerFactory->create();
+        $customer->setWebsiteId($websiteId);
+        $customer->loadByEmail($shippingAddress['email']);// load customet by email address
+        if(!$customer->getId()){
+            //For guest customer create new cusotmer
+            $customer->setWebsiteId($websiteId)
+                    ->setStore($store)
+                    ->setFirstname($shippingAddress['firstName'])
+                    ->setLastname($shippingAddress['lastName'])
+                    ->setEmail($shippingAddress['email'])
+                    ->setPassword($shippingAddress['email']);
+            $customer->save();
+        }
+
+        $quote=$this->_cartModel->getQuote();//$this->quote->create(); //Create object of quote
+        $quote->setStore($store); //set store for our quote
+        /* for registered customer */
+
+        $customer= $this->customerRepository->getById($customer->getId());
+        $quote->setCurrency();
+        $quote->assignCustomer($customer); //Assign quote to customer
+
+        //add items in quote
+
+        // $results = $this->_cartModel->getItems();
+
+        // foreach ($results as $value) {
+        //     /** @var \Magento\Catalog\Model\Product $product */
+        //     $product = $value->getProduct();
+        //     $quote->addProduct($product,$value->getQty());
+        // }
+
+        //Set Billing and shipping Address to quote
+        $quote->setBillingAddress($this->checkoutSession->getQuote()->getBillingAddress());
+        $quote->setShippingAddress($this->checkoutSession->getQuote()->getShippingAddress());
+
+        $methodInfo = explode('.', $shippingMethod);
+
+        // set shipping method
+        $shippingAddress=$quote->getShippingAddress();
+        $shippingAddress->setCollectShippingRates(true)
+                        ->collectShippingRates()
+                        ->setShippingMethod($methodInfo[1])->setShippingCarrierCode($methodInfo[0]); //shipping method, please verify flat rate shipping must be enable
+        // $quote->setPaymentMethod($paymentMethod); //payment method, please verify checkmo must be enable from admin
+        $quote->setInventoryProcessed(false); //decrease item stock equal to qty
+        $quote->save(); //quote save
+        // Set Sales Order Payment, We have taken check/money order
+        // $quote->getPayment()->importData(['method' => $paymentMethod]);
+
+        // Collect Quote Totals & Save
+        $quote->collectTotals()->save();
+        // Create Order From Quote Object
+        $order = $this->quoteManagement->submit($quote);
+
+        /* for send order email to customer email id */
+        $this->orderSender->send($order);
+
+        /* get order real id from order */
+        $orderId = $order->getIncrementId();
+
+
         return [
             'url' => '1',
             'order' => [
-                'id' => '1'
+                'id' => $orderId
             ]
         ];
     }
