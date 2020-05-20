@@ -26,16 +26,37 @@ class Checkout extends Resolver
      */
     protected $checkoutSession;
 
+    /**
+     * @var \Magento\Quote\Api\Data\AddressInterface
+     */
+    protected $address;
+
+    /**
+     * @var \Magento\Checkout\Api\ShippingInformationManagementInterface
+     */
+    protected $shippingInformationManagement;
+
+    /**
+     * @var \Magento\Checkout\Api\Data\ShippingInformationInterface
+     */
+    protected $shippingInformation;
+
     public function __construct(
         Config $shippingModelConfig,
         UrlInterface $url,
         Session $session,
-        Data $currencyHelper
+        Data $currencyHelper,
+        \Magento\Quote\Api\Data\AddressInterface $address,
+        \Magento\Checkout\Api\Data\ShippingInformationInterface $shippingInformation,
+        \Magento\Checkout\Api\ShippingInformationManagementInterface $shippingInformationManagement
     ) {
         $this->_currencyHelper = $currencyHelper;
         $this->url = $url;
         $this->_shippingModelConfig = $shippingModelConfig;
         $this->checkoutSession = $session;
+        $this->address = $address;
+        $this->shippingInformationManagement = $shippingInformationManagement;
+        $this->shippingInformation = $shippingInformation;
     }
 
     public function link()
@@ -85,8 +106,8 @@ class Checkout extends Resolver
         foreach ($carriers as $shippingCode => $shippingModel) {
             $shippingPrice = $this->_currencyHelper->currency($shippingModel->getConfigData('price'), true, false);
             $result[] = [
-                'id' => $shippingModel->getCarrierCode(),
-                'codename' => $shippingModel->getCarrierCode(),
+                'id' => $shippingModel->getCarrierCode() . '.' . $shippingCode,
+                'codename' => $shippingModel->getCarrierCode() . '.' . $shippingCode,
                 "name" => $shippingModel->getConfigData('title') . ' - ' . $shippingPrice
             ];
         }
@@ -111,12 +132,6 @@ class Checkout extends Resolver
 
         $fields[] = [
             'type' => 'text',
-            'name' => 'email',
-            'required' => true
-        ];
-
-        $fields[] = [
-            'type' => 'text',
             'name' => 'company',
             'required' => false
         ];
@@ -132,7 +147,17 @@ class Checkout extends Resolver
         ];
         $fields[] = [
             'type' => 'text',
+            'name' => 'address3',
+            'required' => false
+        ];
+        $fields[] = [
+            'type' => 'text',
             'name' => 'city',
+            'required' => true
+        ];
+        $fields[] = [
+            'type' => 'zone',
+            'name' => 'zone_id',
             'required' => true
         ];
         $fields[] = [
@@ -144,12 +169,6 @@ class Checkout extends Resolver
         $fields[] = [
             'type' => 'country',
             'name' => 'country_id',
-            'required' => true
-        ];
-
-        $fields[] = [
-            'type' => 'zone',
-            'name' => 'zone_id',
             'required' => true
         ];
 
@@ -218,11 +237,18 @@ class Checkout extends Resolver
             'required' => true
         ];
 
+        $fields[] = [
+            'type' => 'phone',
+            'name' => 'phone',
+            'required' => true
+        ];
+
         return $fields;
     }
 
     public function createOrder($args)
     {
+        $this->checkoutSession->regenerateId();
         // $this->session->data['shipping_address'] = array();
 
         // foreach ($this->shippingAddress() as $value) {
@@ -262,33 +288,52 @@ class Checkout extends Resolver
         //     }
         // }
 
-        // foreach ($args['shippingAddress'] as $value) {
-        //     if (strpos($value['name'], "vfCustomField-") !== false) {
-        //         if ($value['value']) {
-        //             $field_name = str_replace("vfCustomField-", "", $value['name']);
-        //             $field_name = explode('-', $field_name);
-        //             if (!isset($this->session->data['shipping_address']['custom_field'][$field_name[0]])) {
-        //                 $this->session->data['shipping_address']['custom_field'][$field_name[0]] = array();
-        //             }
-        //             $this->session->data['shipping_address']['custom_field'][$field_name[0]][$field_name[1]] = $value['value'];
-        //         }
-        //     } else {
-        //         if ($value['value']) {
-        //             $this->session->data['shipping_address'][$value['name']] = $value['value'];
-        //         }
-        //     }
-        // }
+        $shippingAddress = [];
 
-        // if (!empty($args['shippingMethod'])) {
-        //     $shipping = explode('.', $args['shippingMethod']);
+        foreach ($this->shippingAddress() as $value) {
+            $shippingAddress[$value['name']] = '';
+        }
 
-        //     $this->load->model('extension/shipping/'.$shipping[0]);
+        foreach ($args['shippingAddress'] as $value) {
+            if ($value['value']) {
+                $shippingAddress[$value['name']] = $value['value'];
+            }
+        }
 
-        //     $quote = $this->{'model_extension_shipping_' . $shipping[0]}->getQuote($this->session->data['shipping_address']);
-        //     if ($quote) {
-        //         $this->session->data['shipping_method'] = $quote['quote'][$shipping[1]];
-        //     }
-        // }
+        $shipping_address = $this->address
+            ->setFirstname($shippingAddress['firstName'])
+            ->setLastname($shippingAddress['lastName'])
+            ->setStreet($shippingAddress['address1'])
+            ->setCity($shippingAddress['city'])
+            ->setCountryId($shippingAddress['country_id'])
+            ->setRegionId($shippingAddress['zone_id'])
+            // ->setRegion($region)
+            ->setPostcode($shippingAddress['postcode'])
+            ->setTelephone($shippingAddress['phone'])
+            ->setSaveInAddressBook(0)
+            ->setSameAsBilling(0);
+
+        $shipping_information = $this->shippingInformation->setShippingAddress($shipping_address);
+
+        if (!empty($args['shippingMethod'])) {
+
+
+            $methodInfo = explode('.', $args['shippingMethod']);
+
+            $shipping_information = $shipping_information->setShippingCarrierCode($methodInfo[0])
+            ->setShippingMethodCode($methodInfo[1]);
+
+            if ($this->checkoutSession->getQuote()) {
+                $cartId = $this->checkoutSession->getQuote()->getId();
+                $cartSkuArray = $this->getCartItemsSkus();
+                if ($cartSkuArray) {
+                    try {
+                        $this->shippingInformationManagement->saveAddressInformation($cartId, $shipping_information);
+                    } catch (\Exception $e) {
+                    }
+                }
+            }
+        }
 
         // $this->session->data['payment_method'] = $args['paymentMethod'];
         $that = $this;
@@ -314,6 +359,15 @@ class Checkout extends Resolver
         ];
     }
 
+    public function getCartItemsSkus() {
+        $cartSkuArray = [];
+        $cartItems = $this->checkoutSession->getQuote()->getAllVisibleItems();
+        foreach ($cartItems as $product) {
+            $cartSkuArray[] = $product->getSku();
+        }
+        return $cartSkuArray;
+    }
+
     public function confirmOrder()
     {
         return [
@@ -326,6 +380,17 @@ class Checkout extends Resolver
 
     public function totals()
     {
-        return [];
+        $totals = $this->checkoutSession->getQuote()->getTotals();
+
+        $result = [];
+
+        foreach ($totals as $key => $value) {
+            $result[] = [
+                "title" => $value->toArray()['title'],
+                "text" => $this->_currencyHelper->currency($value->toArray()['value'], true, false)
+            ];
+        }
+
+        return $result;
     }
 }

@@ -55,6 +55,8 @@ class Checkout extends Model
 
         $this->_curl->addHeader('Content-type', 'application/json');
         $this->_curl->addHeader('Authorization', $jwt);
+        $this->_curl->setOption(CURLOPT_SSL_VERIFYHOST, false);
+        $this->_curl->setOption(CURLOPT_SSL_VERIFYPEER, false);
         $this->_curl->post('https://api.checkout.vuefront.com/graphql', $this->_jsonSerializer->serialize($requestData));
 
         $result = $this->_curl->getBody();
