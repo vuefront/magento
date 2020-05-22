@@ -90,6 +90,10 @@ class Cart extends Resolver
         return $this->get($args);
     }
 
+    public function getQuote() {
+        return $this->_cartModel->getQuote();
+    }
+
     public function get($args)
     {
         $this->_cartModel->getQuote()->collectTotals();
