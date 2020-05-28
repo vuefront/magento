@@ -82,6 +82,11 @@ class Checkout extends Resolver
      */
     protected $orderSender;
 
+    /**
+     * @var \Magento\Quote\Model\Quote\PaymentFactory
+     */
+    protected $paymentFactory;
+
     public function __construct(
         Config $shippingModelConfig,
         UrlInterface $url,
@@ -97,7 +102,8 @@ class Checkout extends Resolver
         \Magento\Catalog\Api\ProductRepositoryInterface $productRepository,
         \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
         \Magento\Quote\Model\QuoteManagement $quoteManagement,
-        \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender
+        \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
+        \Magento\Quote\Model\Quote\PaymentFactory $paymentFactory
     ) {
         $this->_currencyHelper = $currencyHelper;
         $this->url = $url;
@@ -114,6 +120,7 @@ class Checkout extends Resolver
         $this->customerRepository = $customerRepository;
         $this->quoteManagement = $quoteManagement;
         $this->orderSender = $orderSender;
+        $this->paymentFactory = $paymentFactory;
     }
 
     public function link()
@@ -407,7 +414,6 @@ class Checkout extends Resolver
             ->setCity($shippingAddress['city'])
             ->setCountryId($shippingAddress['country_id'])
             ->setRegionId($shippingAddress['zone_id'])
-            // ->setRegion($region)
             ->setPostcode($shippingAddress['postcode'])
             ->setTelephone($shippingAddress['phone'])
             ->setSaveInAddressBook(0)
@@ -446,11 +452,23 @@ class Checkout extends Resolver
             ->setSaveInAddressBook(0)
             ->setSameAsBilling(0);
 
+        $this->checkoutSession->getQuote()->setCustomerEmail($shippingAddress['email']);
+        $this->checkoutSession->getQuote()->setCustomerFirstname($shippingAddress['firstName']);
+        $this->checkoutSession->getQuote()->setCustomerLastname($shippingAddress['lastName']);
+        $this->checkoutSession->getQuote()->setCustomerIsGuest(1);
+
         $this->checkoutSession->getQuote()->setBillingAddress($payment_address);
         $this->checkoutSession->getQuote()->setShippingAddress($shipping_address);
 
+
         $this->_sessionManager->setPaymentMethod($args['paymentMethod']);
         $this->_sessionManager->setShippingMethod($args['shippingMethod']);
+        if(!empty($args['paymentMethod'])) {
+            $payment = $this->paymentFactory->create();
+            $payment->setMethod($args['paymentMethod']);
+            $this->checkoutSession->getQuote()->setPayment($payment);
+        }
+        $this->checkoutSession->getQuote()->save();
 
         $that = $this;
         return [
@@ -486,97 +504,37 @@ class Checkout extends Resolver
 
     public function confirmOrder()
     {
-
-        $store = $this->storeManager->getStore();
-        $storeId = $store->getStoreId();
-
-        $websiteId = $this->storeManager->getStore()->getWebsiteId();
-
-        $shippingAddress = $this->_sessionManager->getShippingAddress();
-        $paymentAddress = $this->_sessionManager->getPaymentAddress();
-
-        $shippingMethod = $this->_sessionManager->getShippingMethod();
+        $total = $this->checkoutSession->getQuote()->getGrandTotal();
+        $order = $this->quoteManagement->submit($this->checkoutSession->getQuote());
         $paymentMethod = $this->_sessionManager->getPaymentMethod();
-
-        $customer = $this->customerFactory->create();
-        $customer->setWebsiteId($websiteId);
-        $customer->loadByEmail($shippingAddress['email']);// load customet by email address
-        if(!$customer->getId()){
-            //For guest customer create new cusotmer
-            $customer->setWebsiteId($websiteId)
-                    ->setStore($store)
-                    ->setFirstname($shippingAddress['firstName'])
-                    ->setLastname($shippingAddress['lastName'])
-                    ->setEmail($shippingAddress['email'])
-                    ->setPassword($shippingAddress['email']);
-            $customer->save();
-        }
-
-        // $quote=$this->_cartModel->getQuote();//$this->quote->create(); //Create object of quote
-        /**
-         * @var \Magento\Quote\Model\Quote
-         */
-        $quote = $this->load->resolver('store/cart/getQuote');
-
-        $quote->setStore($store); //set store for our quote
-        // /* for registered customer */
-
-        $customer= $this->customerRepository->getById($customer->getId());
-        $quote->setCurrency();
-        $quote->assignCustomer($customer); //Assign quote to customer
-
-        // $this->_cartModel->getQuote()->collectTotals();
-        //add items in quote
-
-        // $results = $this->_cartModel->getItems();
-
-        // foreach ($results as $value) {
-        //     var_dump('item');
-        // //     /** @var \Magento\Catalog\Model\Product $product */
-        // //     $product = $value->getProduct();
-        // //     $quote->addProduct($product,$value->getQty());
-        // }
-
-        // //Set Billing and shipping Address to quote
-        $quote->setBillingAddress($this->checkoutSession->getQuote()->getBillingAddress());
-        $quote->setShippingAddress($this->checkoutSession->getQuote()->getShippingAddress());
-
-        $methodInfo = explode('.', $shippingMethod);
-        var_dump(count($quote->getAllVisibleItems()));
-
-        // set shipping method
-        $shippingAddress=$quote->getShippingAddress();
-        $shippingAddress->setCollectShippingRates(true)
-                        ->collectShippingRates()
-                        ->setShippingMethod($methodInfo[1])->setShippingCarrierCode($methodInfo[0]); //shipping method, please verify flat rate shipping must be enable
-        // // $quote->setPaymentMethod($paymentMethod); //payment method, please verify checkmo must be enable from admin
-        // $quote->setInventoryProcessed(false); //decrease item stock equal to qty
-        $quote->save(); //quote save
-        // // Set Sales Order Payment, We have taken check/money order
-        // $quote->getPayment()->importData(['method' => $paymentMethod]);
-
-        // // Collect Quote Totals & Save
-        $quote->collectTotals()->save();
-        // // Create Order From Quote Object
-        $order = $this->quoteManagement->submit($quote);
-
-        var_dump($order ? 1 : 0);
 
         $orderId = null;
 
-        // if($order) {
-        //         // throw new ÷
+        if(!$order) {
+            return [];
+        }
 
-        //     /* for send order email to customer email id */
-        //     $this->orderSender->send($order);
+        $this->orderSender->send($order);
 
-        //     /* get order real id from order */
-        //     $orderId = $order->getIncrementId();
-        // }
+        $orderId = $order->getIncrementId();
 
+         $this->load->model('store/checkout');
+
+        $response = $this->model_store_checkout->requestCheckout(
+            'mutation($paymentMethod: String, $total: Float, $callback: String) {
+                createOrder(paymentMethod: $paymentMethod, total: $total, callback: $callback) {
+                    url
+                }
+            }',
+            array(
+                'paymentMethod' => $paymentMethod,
+                'total' => floatval($total),
+                'callback' => ''//$this->url->link('extension/d_vuefront/store/checkout/callback', 'order_id='.$orderId, true)
+            )
+        );
 
         return [
-            'url' => '1',
+            'url' => $response['createOrder']['url'],
             'order' => [
                 'id' => $orderId
             ]

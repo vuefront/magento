@@ -61,6 +61,7 @@ class Cart extends Resolver
             'super_attribute' => $super_attributes,
             'links' => $links
         ];
+
         $product_info = $this->_productRepository->getById($args['id']);
 
         try {
