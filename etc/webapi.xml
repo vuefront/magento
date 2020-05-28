@@ -7,6 +7,12 @@
             <resource ref="anonymous"/>
         </resources>
     </route>
+    <route url="/V1/vuefront/callback" method="POST">
+        <service class="Vuefront\Vuefront\Api\GraphqlInterface" method="callback"/>
+        <resources>
+            <resource ref="anonymous"/>
+        </resources>
+    </route>
     <route url="/V1/vuefront/information/:id" method="POST">
         <service class="Vuefront\Vuefront\Api\InformationInterface" method="info"/>
         <resources>

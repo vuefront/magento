@@ -529,7 +529,7 @@ class Checkout extends Resolver
             array(
                 'paymentMethod' => $paymentMethod,
                 'total' => floatval($total),
-                'callback' => ''//$this->url->link('extension/d_vuefront/store/checkout/callback', 'order_id='.$orderId, true)
+                'callback' => $this->storeManager->getStore()->getBaseUrl(). "rest/V1/vuefront/callback?order_id=".$orderId
             )
         );
 
@@ -539,6 +539,10 @@ class Checkout extends Resolver
                 'id' => $orderId
             ]
         ];
+    }
+
+    public function callback() {
+
     }
 
     public function totals()

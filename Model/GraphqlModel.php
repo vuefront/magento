@@ -79,4 +79,22 @@ class GraphqlModel implements GraphqlInterface
             return;
         }
     }
+
+    public function callback()
+    {
+        $this->checkCors();
+
+        $enable = $this->scopeConfig
+            ->getValue('vuefront/general/enable', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
+
+        if ($enable) {
+            $output = $this->startup->start($this->request->getBodyParams(), $this->driver);
+
+            return $output;
+        } else {
+            $norouteUrl = $this->url->getUrl('noroute');
+            $this->response->setRedirect($norouteUrl);
+            return;
+        }
+    }
 }

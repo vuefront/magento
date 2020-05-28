@@ -38,4 +38,15 @@ class Startup
 
         return $this->registry->get('response')->getOutput();
     }
+
+    /**
+     * @param $body
+     * @param $driver \Magento\Framework\Filesystem\Driver\File
+     */
+    public function callback($body, $driver)
+    {
+        $this->loader->resolver('store/checkout/callback', $body);
+
+        return $this->registry->get('response')->getOutput();
+    }
 }
