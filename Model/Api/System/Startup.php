@@ -42,10 +42,11 @@ class Startup
     /**
      * @param $body
      * @param $driver \Magento\Framework\Filesystem\Driver\File
+     * @param $orderId
      */
-    public function callback($body, $driver)
+    public function callback($body, $driver, $orderId)
     {
-        $this->loader->resolver('store/checkout/callback', $body);
+        $this->loader->resolver('store/checkout/callback', array('body' => $body, 'orderId' => $orderId));
 
         return $this->registry->get('response')->getOutput();
     }

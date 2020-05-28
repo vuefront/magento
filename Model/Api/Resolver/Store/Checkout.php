@@ -541,7 +541,14 @@ class Checkout extends Resolver
         ];
     }
 
-    public function callback() {
+    public function callback($args) {
+        $body = $args['body'];
+        $orderId = $args['orderId'];
+        $status = $body['status'];
+        $this->response->setOutput([
+            'orderId' => $orderId,
+            'status' => $status
+        ]);
 
     }
 

@@ -12,6 +12,13 @@ interface GraphqlInterface
     public function graphql();
 
     /**
+     * Get callback
+     * @return string
+     * @api
+     */
+    public function callback();
+
+    /**
      * Cors check
      * @return array
      * @api

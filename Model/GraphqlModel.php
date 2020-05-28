@@ -88,7 +88,8 @@ class GraphqlModel implements GraphqlInterface
             ->getValue('vuefront/general/enable', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
 
         if ($enable) {
-            $output = $this->startup->start($this->request->getBodyParams(), $this->driver);
+
+            $output = $this->startup->callback($this->request->getBodyParams(), $this->driver, $this->request->getQueryValue('order_id'));
 
             return $output;
         } else {
