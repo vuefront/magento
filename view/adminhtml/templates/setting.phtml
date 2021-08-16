@@ -1,9 +1,11 @@
 <div class="vuefront-content module-content">
     <?php
-    $storeManager = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Store\Model\StoreManagerInterface::class);
+    $storeManager = \Magento\Framework\App\ObjectManager::getInstance()
+        ->get(\Magento\Store\Model\StoreManagerInterface::class);
     $moduleManager = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\Module\Manager::class);
     $uriBuilder = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Backend\Model\UrlInterface::class);
-    $tokenModel = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Integration\Model\Oauth\Token::class);
+    $tokenModel = \Magento\Framework\App\ObjectManager::getInstance()
+        ->get(\Magento\Integration\Model\Oauth\Token::class);
     $authModel = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Backend\Model\Auth\Session::class);
     $adminUserId = $authModel->getUser()->getId();
     ?>

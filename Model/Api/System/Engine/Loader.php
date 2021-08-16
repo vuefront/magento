@@ -2,6 +2,9 @@
 
 namespace Vuefront\Vuefront\Model\Api\System\Engine;
 
+use Vuefront\Vuefront\Model\Api\Model\Common\Customer;
+use Vuefront\Vuefront\Model\Api\Resolver\Store\Manufacturer;
+
 class Loader
 {
     protected $registry;
@@ -30,9 +33,11 @@ class Loader
         \Vuefront\Vuefront\Model\Api\Resolver\Store\Product $product,
         \Vuefront\Vuefront\Model\Api\Resolver\Store\Review $review,
         \Vuefront\Vuefront\Model\Api\Resolver\Store\Wishlist $wishList,
+        \Vuefront\Vuefront\Model\Api\Resolver\Store\Manufacturer $manufacturer,
         \Vuefront\Vuefront\Model\Api\Model\Startup\Startup $modelStartup,
         \Vuefront\Vuefront\Model\Api\Model\Blog\Category $modelBlogCategory,
         \Vuefront\Vuefront\Model\Api\Model\Blog\Post $modelBlogPost,
+        \Vuefront\Vuefront\Model\Api\Model\Common\Customer $modelCommonCustomer,
         \Vuefront\Vuefront\Model\Api\Model\Common\Address $modelCommonAddress,
         \Vuefront\Vuefront\Model\Api\Model\Common\Country $modelCommonCountry,
         \Vuefront\Vuefront\Model\Api\Model\Common\Page $modelCommonPage,
@@ -42,7 +47,11 @@ class Loader
         \Vuefront\Vuefront\Model\Api\Model\Store\Product $modelStoreProduct,
         \Vuefront\Vuefront\Model\Api\Model\Store\Review $modelStoreReview,
         \Vuefront\Vuefront\Model\Api\Model\Store\Wishlist $modelStoreWishlist,
-        \Vuefront\Vuefront\Model\Api\Model\Store\Checkout $modelStoreCheckout
+        \Vuefront\Vuefront\Model\Api\Model\Store\Checkout $modelStoreCheckout,
+        \Vuefront\Vuefront\Model\Api\Model\Common\Vuefront $modelCommonVuefront,
+        \Vuefront\Vuefront\Model\Api\Model\Common\Seo $modelCommonSeo,
+        \Vuefront\Vuefront\Model\Api\Model\Store\Manufacturer $modelStoreManufacturer,
+        \Vuefront\Vuefront\Model\Api\Model\Store\Cart $modelStoreCart
     ) {
         $this->resolvers['Blog\Post'] = $postBlog;
         $this->resolvers['Blog\Category'] = $blogCategory;
@@ -64,20 +73,26 @@ class Loader
         $this->resolvers['Store\Review'] = $review;
         $this->resolvers['Store\Wishlist'] = $wishList;
         $this->resolvers['Startup\Startup'] = $startup;
+        $this->resolvers['Store\Manufacturer'] = $manufacturer;
 
         $this->models['Startup\Startup'] = $modelStartup;
         $this->models['Blog\Category'] = $modelBlogCategory;
         $this->models['Blog\Post'] = $modelBlogPost;
+        $this->models['Common\Customer'] = $modelCommonCustomer;
         $this->models['Common\Address'] = $modelCommonAddress;
         $this->models['Common\Country'] = $modelCommonCountry;
         $this->models['Common\Page'] = $modelCommonPage;
         $this->models['Common\Zone'] = $modelCommonZone;
+        $this->models['Common\Vuefront'] = $modelCommonVuefront;
+        $this->models['Common\Seo'] = $modelCommonSeo;
         $this->models['Store\Category'] = $modelStoreCategory;
         $this->models['Store\Compare'] = $modelStoreCompare;
         $this->models['Store\Product'] = $modelStoreProduct;
         $this->models['Store\Review'] = $modelStoreReview;
         $this->models['Store\Wishlist'] = $modelStoreWishlist;
         $this->models['Store\Checkout'] = $modelStoreCheckout;
+        $this->models['Store\Manufacturer'] = $modelStoreManufacturer;
+        $this->models['Store\Cart'] = $modelStoreCart;
 
         $this->registry = $registry;
     }
@@ -94,7 +109,6 @@ class Loader
         $route = implode('\\', $route);
 
         $method = 'index';
-
         if (!class_exists('\Vuefront\Vuefront\Model\Api\Resolver\\' . $route)) {
             $route = explode('\\', $route);
             $method = array_pop($route);
@@ -102,7 +116,9 @@ class Loader
         }
 
         $resolver =  $this->resolvers[$route];
+
         $resolver->initRegistry($this->registry);
+
         $output = $resolver->{$method}($data);
 
         if (!$output instanceof \Exception) {

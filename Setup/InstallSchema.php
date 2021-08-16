@@ -9,13 +9,13 @@ use Magento\Framework\DB\Adapter\AdapterInterface;
 
 class InstallSchema implements InstallSchemaInterface
 {
-     public function install(SchemaSetupInterface $setup, ModuleContextInterface $context)
-     {
-         $installer = $setup;
-         $installer->startSetup();
+    public function install(SchemaSetupInterface $setup, ModuleContextInterface $context)
+    {
+        $installer = $setup;
+        $installer->startSetup();
 
         /**
-         * Create table 'magefan_faq'
+         * Create table 'vuefront_apps'
          */
         $table = $installer->getConnection()->newTable(
             $installer->getTable('vuefront_apps')
@@ -47,7 +47,32 @@ class InstallSchema implements InstallSchemaInterface
             'Vuefront APP Table'
         );
         $installer->getConnection()->createTable($table);
+        /**
+         * Create table 'vuefront_apps'
+         */
+        $table = $installer->getConnection()->newTable(
+            $installer->getTable('vuefront_settings')
+        )->addColumn(
+            'setting_id',
+            \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
+            null,
+            ['identity' => true, 'nullable' => false, 'primary' => true],
+            'SETTING ID'
+        )->addColumn(
+            'key',
+            \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
+            255,
+            ['nullable' => true],
+            'SETTING key'
+        )->addColumn(
+            'value',
+            \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
+            '64k',
+            ['nullable' => true],
+            'SETTING value'
+        );
+        $installer->getConnection()->createTable($table);
 
         $installer->endSetup();
-     }
+    }
 }

@@ -68,6 +68,13 @@ class Post extends Resolver
                         'post' => $post
                     ]);
                 },
+                'url' => function ($root, $args) use ($post, $that) {
+                    return $that->url([
+                        'parent' => $root,
+                        'args' => $args,
+                        'post' => $post
+                    ]);
+                },
                 'next' => function ($root, $args) use ($post, $that) {
                     return $that->load->resolver('blog/post/next', [
                         'parent' => $root,
@@ -196,5 +203,20 @@ class Post extends Resolver
         } else {
             return [];
         }
+    }
+    public function url($data)
+    {
+        /** @var $category_info \Magefan\Blog\Model\Post */
+        $category_info = $data['post'];
+        $result = $data['args']['url'];
+
+        $result = str_replace("_id", $category_info->getId(), $result);
+        $result = str_replace("_name", $category_info->getTitle(), $result);
+
+        if ($category_info->getUrl() != "") {
+            $result = '/' . $category_info->getUrl();
+        }
+
+        return $result;
     }
 }

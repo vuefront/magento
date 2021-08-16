@@ -2,6 +2,7 @@
 
 namespace Vuefront\Vuefront\Model;
 
+use Magento\Config\Model\Config;
 use Magento\Framework\App\Action\Context;
 use Vuefront\Vuefront\Api\InformationInterface;
 
@@ -27,6 +28,8 @@ class InformationModel implements InformationInterface
     protected $startup;
     protected $collectionFactory;
     protected $appsFactory;
+    protected $settingFactory;
+    protected $configFarctory;
     protected $date;
 
     public function __construct(
@@ -49,6 +52,8 @@ class InformationModel implements InformationInterface
         \Magento\Framework\Filesystem\Io\File $file,
         \Magento\Framework\Archive\Tar $arhiveTar,
         \Vuefront\Vuefront\Model\AppsFactory $appsFactory,
+        \Vuefront\Vuefront\Model\SettingsFactory $settingFactory,
+        \Magento\Config\Model\Config\Factory $configFarctory,
         \Magento\Framework\Stdlib\DateTime\DateTime $date
     ) {
         $this->scopeConfig = $scopeConfig;
@@ -61,6 +66,7 @@ class InformationModel implements InformationInterface
         $this->driver = $driver;
         $this->collectionFactory = $productFactory;
         $this->appsFactory = $appsFactory;
+        $this->configFarctory = $configFarctory;
         $this->moduleManager = $moduleManager;
         $this->storeManager = $storeManager;
         $this->moduleList = $moduleList;
@@ -68,6 +74,7 @@ class InformationModel implements InformationInterface
         $this->moduleReader = $moduleReader;
         $this->driverFile = $driverFile;
         $this->zendFileExists = $zendFileExists;
+        $this->settingFactory = $settingFactory;
         $this->file = $file;
         $this->zendHttp = $zendHttp;
         $this->arhiveTar = $arhiveTar;
@@ -308,6 +315,33 @@ RewriteRule ^([^?]*) vuefront/200.html [L,QSA]";
         return $this->vfInformation();
     }
 
+    public function vfSettings()
+    {
+        $result = [];
+        $settings = $this->settingFactory->create();
+        $collection = $settings->getCollection();
+
+        foreach ($collection->getData() as $value) {
+            $result[$value['key']] = $value['value'];
+        }
+
+        return $result;
+    }
+
+    public function vfSettingsEdit()
+    {
+        foreach ($this->request->getBodyParams()['setting'] as $key => $value) {
+            $settings = $this->settingFactory->create();
+            $settings->setData('key', $key);
+            $settings->setData('value', $value);
+            $settings->save();
+        }
+
+        return [
+            'success' => 'success'
+        ];
+    }
+
     public function vfUpdate()
     {
         try {
@@ -340,34 +374,8 @@ RewriteRule ^([^?]*) vuefront/200.html [L,QSA]";
         return $this->vfInformation();
     }
 
-    public function vfApps() {
-        $apps = $this->appsFactory->create();
-        $collection = $apps->getCollection();
-
-        $result = [];
-
-        foreach ($collection as $key => $value) {
-            $data = $value->getData();
-            $result[] = [
-                'codename' => $data['codename'],
-                'jwt' => $data['jwt'],
-                'date_added' => $data['date_added']
-            ];
-        }
-
-        return $result;
-    }
-
-    public function vfAppsCreate($post) {
-        $app = $this->appsFactory->create();
-        $app->setCodename($post['codename']);
-        $app->setJwt($post['jwt']);
-        $app->setDateAdded($this->date->gmtDate());
-        $app->save();
-        return [];
-    }
-
-    public function vfAppsRemove($post) {
+    public function vfAppsEdit($post)
+    {
         $app = $this->appsFactory->create()->getCollection();
         $app->addFieldToSelect('*');
         $app->setCurPage($post['key'] + 1);
@@ -376,7 +384,59 @@ RewriteRule ^([^?]*) vuefront/200.html [L,QSA]";
         $result = $app->load();
 
         foreach ($result->getItems() as $key => $value) {
-            var_dump($value->getAppId());
+            $model = $this->appsFactory->create();
+            $model->load($value->getAppId());
+            $model->setData('jwt', $post['app']['jwt']);
+            $model->setData('authUrl', $post['app']['authUrl']);
+            $model->setData('eventUrl', $post['app']['eventUrl']);
+
+            $model->save();
+        }
+        return ['success' => 'success'];
+    }
+
+    public function vfApps()
+    {
+        $result = [];
+
+        $apps = $this->appsFactory->create();
+
+        $collection = $apps->getCollection();
+
+        foreach ($collection as $key => $value) {
+            $data = $value->getData();
+            $result[] = [
+                'codename' => $data['codename'],
+                'jwt' => $data['jwt'],
+                'eventUrl' => $data['eventUrl'],
+                'authUrl' => $data['authUrl'],
+                'date_added' => $data['date_added']
+            ];
+        }
+
+        return $result;
+    }
+
+    public function vfAppsCreate($post)
+    {
+        $app = $this->appsFactory->create();
+        $app->setCodename($post['codename']);
+        $app->setJwt($post['jwt']);
+        $app->setDateAdded($this->date->gmtDate());
+        $app->save();
+        return [];
+    }
+
+    public function vfAppsRemove($post)
+    {
+        $app = $this->appsFactory->create()->getCollection();
+        $app->addFieldToSelect('*');
+        $app->setCurPage($post['key'] + 1);
+        $app->setPageSize(1);
+
+        $result = $app->load();
+
+        foreach ($result->getItems() as $key => $value) {
             $model = $this->appsFactory->create();
             $model->load($value->getAppId());
             $model->delete();
@@ -410,6 +470,15 @@ RewriteRule ^([^?]*) vuefront/200.html [L,QSA]";
                 break;
             case 'vf_update':
                 $result = $this->vfUpdate();
+                break;
+            case 'vf_settings':
+                $result = $this->vfSettings();
+                break;
+            case 'vf_settings_edit':
+                $result = $this->vfSettingsEdit();
+                break;
+            case 'vf_apps_edit':
+                $result = $this->vfAppsEdit($this->request->getBodyParams());
                 break;
             default:
                 $result = [];

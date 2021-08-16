@@ -22,7 +22,8 @@ class Checkout extends Model
         $this->_jsonSerializer = $jsonSerializer;
     }
 
-    public function getJwt($codename) {
+    public function getJwt($codename)
+    {
 
         $collection = $this->_appsFactory->create()->getCollection();
 
@@ -31,7 +32,7 @@ class Checkout extends Model
         foreach ($collection as $key => $value) {
             $data = $value->getData();
 
-            if($data['codename'] == $codename) {
+            if ($data['codename'] == $codename) {
                 $jwt = $data['jwt'];
             }
         }
@@ -39,16 +40,17 @@ class Checkout extends Model
         return $jwt;
     }
 
-    public function requestCheckout($query, $variables) {
+    public function requestCheckout($query, $variables)
+    {
         $jwt = $this->getJwt('vuefront-checkout-app');
 
-        $requestData = array(
+        $requestData = [
             'operationName' => null,
             'variables' => $variables,
             'query' => $query
-        );
+        ];
 
-        $headr = array();
+        $headr = [];
 
         $headr[] = 'Content-type: application/json';
         $headr[] = 'Authorization: '.$jwt;
@@ -57,7 +59,10 @@ class Checkout extends Model
         $this->_curl->addHeader('Authorization', $jwt);
         $this->_curl->setOption(CURLOPT_SSL_VERIFYHOST, false);
         $this->_curl->setOption(CURLOPT_SSL_VERIFYPEER, false);
-        $this->_curl->post('https://api.checkout.vuefront.com/graphql', $this->_jsonSerializer->serialize($requestData));
+        $this->_curl->post(
+            'https://api.checkout.vuefront.com/graphql',
+            $this->_jsonSerializer->serialize($requestData)
+        );
 
         $result = $this->_curl->getBody();
 

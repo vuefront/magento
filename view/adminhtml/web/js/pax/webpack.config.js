@@ -2,18 +2,16 @@ const path = require('path')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const VueLoaderPlugin = require('vue-loader/lib/plugin')
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer')
-  .BundleAnalyzerPlugin
-const WebpackManifestGeneratorPlugin = require('webpack-manifest-generator-plugin')
+const WebpackManifestGeneratorPlugin = require('./webpack-manifest')
 const CleanWebpackPlugin = require('clean-webpack-plugin').CleanWebpackPlugin
 const webpack = require('webpack')
-const WebpackBar = require('webpackbar')
 const url = require('url')
+const zlib = require('zlib')
 const _ = require('lodash')
 const fs = require('fs')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const paxConfig = require('./pax.config')
 require('dotenv').config()
-
 const polyfill =  !_.isUndefined(paxConfig.polyfill) ? paxConfig.polyfill : true
 
 const isWin = process.platform === "win32";
@@ -98,30 +96,90 @@ module.exports = (env, argv) => {
         errors: true,
         warnings: false
       },
+      // stats: 'errors-only',
       open: false,
       hotOnly: true,
+      stats: {
+        preset: 'minimal',
+        moduleTrace: true,
+        errorDetails: true
+      },
       historyApiFallback: true,
-      compress: false
+      compress: false,
+      proxy: {
+        '/': {
+          target: currentUrl,
+          secure: false,
+          changeOrigin: true,
+          autoRewrite: true,
+          pathRewrite: rewriteUrls,
+          headers: {
+            'X-ProxiedBy-Webpack': true
+          },
+          onProxyRes(proxyRes, req, res) {
+            var _write = res.write
+            if (
+              /^text\/html/.test(proxyRes.headers['content-type'])
+            ) {
+              res.write = buffer => {
+                try {
+                  const isZipped =
+                    proxyRes.headers['content-encoding'] === 'gzip'
+                  let body = (isZipped
+                    ? zlib.gunzipSync(buffer)
+                    : buffer
+                  ).toString('utf8')
+                  body = _.replace(body, new RegExp(currentUrl, 'g'), proxyUrl)
+
+                  body = body
+                    .split(currentUrl.replace(/\//g, '\\/'))
+                    .join(proxyUrl.replace(/\//g, '\\/'))
+                  body = body
+                    .split(currentUrl.replace(/http[s]?:/g, ''))
+                    .join(proxyUrl.replace(/http[s]?:/g, ''))
+
+                  let newBuffer = new Buffer.from(body)
+
+                  const gzipRes =  isZipped ? zlib.gzipSync(newBuffer) : newBuffer
+                  if(isZipped) {
+                    res.setHeader('content-length', gzipRes.length);
+                  }
+                  _write.call(res, gzipRes)
+                } catch (e) {
+                  _write.call(res, buffer)
+                }
+              }
+            }
+          }
+        }
+      }
     },
     stats: {
-      colors: true,
-      hash: false,
-      version: true,
-      timings: true,
-      assets: true,
-      chunks: false,
-      modules: false,
-      reasons: false,
-      children: false,
-      source: false,
-      errors: true,
-      errorDetails: false,
-      warnings: true,
-      publicPath: false
+      // colors: true,
+      // hash: false,
+      // version: true,
+      // timings: true,
+      // assets: true,
+      // chunks: false,
+      // modules: false,
+      // reasons: false,
+      // children: false,
+      // source: false,
+      // errors: true,
+      // errorDetails: false,
+      // warnings: true,
+      // publicPath: false
+      preset: 'minimal',
+      moduleTrace: true,
+      errorDetails: true
     },
-    watch: argv.mode === 'development',
+    devtool: 'eval-source-map',
     module: {
       rules: [
+        {
+          test: /\.pug$/,
+          loader: 'pug-plain-loader'
+        },
         {
           resourceQuery: /blockType=i18n/,
           type: 'javascript/auto',
@@ -146,18 +204,24 @@ module.exports = (env, argv) => {
         {
           test: /\.css$/,
           use: [
-            argv.mode === 'development'
-              ? 'vue-style-loader'
-              : MiniCssExtractPlugin.loader,
+            {
+              loader: MiniCssExtractPlugin.loader,
+              options: {
+                esModule: false,
+              },
+            },
             'css-loader'
           ]
         },
         {
           test: /\.(pcss|postcss)$/,
           use: [
-            argv.mode === 'development'
-              ? 'vue-style-loader'
-              : MiniCssExtractPlugin.loader,
+              {
+                loader: MiniCssExtractPlugin.loader,
+                options: {
+                  esModule: false,
+                },
+              },
             'css-loader',
             'postcss-loader'
           ]
@@ -165,9 +229,12 @@ module.exports = (env, argv) => {
         {
           test: /\.scss$/,
           use: [
-            argv.mode === 'development'
-              ? 'vue-style-loader'
-              : MiniCssExtractPlugin.loader,
+              {
+                loader: MiniCssExtractPlugin.loader,
+                options: {
+                  esModule: false,
+                },
+              },
             'css-loader',
             'postcss-loader',
             'sass-loader',
@@ -193,11 +260,20 @@ module.exports = (env, argv) => {
                 fallback: 'file-loader',
                 context: path.resolve(__dirname, './assets'),
                 outputPath: './',
-                publicPath: '../'+publicRelativePath,
+                publicPath: publicRelativePath,
                 name: '[path][name].[ext]'
               }
             }
           ]
+        },
+        {
+          enforce: 'pre',
+          test: /\.(js|vue)$/,
+          loader: 'eslint-loader',
+          exclude: /node_modules/,
+          options: {
+            fix: true,
+          }
         }
       ]
     },
@@ -209,17 +285,52 @@ module.exports = (env, argv) => {
       new WebpackManifestGeneratorPlugin({
         filename: 'manifest.json'
       }),
-      new WebpackBar(),
+      new webpack.ProgressPlugin(),
       new CleanWebpackPlugin({
+        cleanStaleWebpackAssets: false,
         root: path.resolve(__dirname, '../'),
-        verbose: true,
+        verbose: false,
         dry: false,
         watch: false
       }),
       new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/),
       ...plugins
-    ]
+    ],
+    optimization: {
+      splitChunks: {
+        chunks: 'async',
+        cacheGroups: {
+          defaultVendors: {
+            test: /[\\/]node_modules[\\/]/,
+            priority: -10,
+            maxSize: 200000,
+            name: 'vendor',
+            // chunks: 'initial',
+            enforce: true
+          },
+          default: {
+            minChunks: 2,
+            priority: -20,
+            reuseExistingChunk: true
+          }
+        }
+      }
+    }
   }
+}
+const loadConfig = () => {
+  let configFile = false
+  let currentDir = false
+  do {
+    currentDir = currentDir
+      ? path.resolve(currentDir, '../')
+      : path.resolve(__dirname, '../')
+    configFile = fs.existsSync(path.resolve(currentDir, './config.php'))
+  } while (!configFile)
+
+  return fs
+    .readFileSync(path.resolve(currentDir, './config.php'))
+    .toString('UTF-8')
 }
 
 const getRootDir = () => {

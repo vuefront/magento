@@ -133,7 +133,7 @@ class Category extends Resolver
         $result = str_replace("_name", $category->getName(), $result);
 
         if ($category->getUrlKey() != '') {
-            $result = '/' . $category->getUrlKey() . '.html';
+            $result = '/' . $category->getUrlKey() . $this->_suffix;
         }
 
         return $result;

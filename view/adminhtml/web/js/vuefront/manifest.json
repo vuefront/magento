@@ -1,12 +1,12 @@
 {
   "files": {
-    "id": 0,
+    "id": 179,
     "next": null,
     "js": [
-      "/app/code/Vuefront/Vuefront/view/adminhtml/web/js/vuefront/custom.js"
+      "/app/code/vuefront/vuefront/view/adminhtml/web/js/vuefront/custom.js"
     ],
     "css": [
-      "/app/code/Vuefront/Vuefront/view/adminhtml/web/js/vuefront/custom.css"
+      "/app/code/vuefront/vuefront/view/adminhtml/web/js/vuefront/custom.css"
     ]
   }
 }

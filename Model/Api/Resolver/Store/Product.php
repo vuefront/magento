@@ -60,6 +60,7 @@ class Product extends Resolver
         }
 
         $that = $this;
+
         return [
             'id' => function () use ($product) {
                 return $product->getId();
@@ -72,6 +73,18 @@ class Product extends Resolver
             },
             'shortDescription' => function () use ($product) {
                 return $product->getShortDescription();
+            },
+            'extra' => function () use ($product, $that) {
+                $resultEvent = [];
+
+                $that->load->model('common/vuefront');
+                $resultEvent = $that->model_common_vuefront->pushEvent(
+                    "fetch_product",
+                    [ "extra" => [],
+                        "product_id" => $product->getId()
+                    ]
+                );
+                return $resultEvent['extra'];
             },
             'price' => function () use ($product) {
                 if ($product->getTypeId() != "simple") {
@@ -101,6 +114,16 @@ class Product extends Resolver
                 }
 
                 return $special;
+            },
+            'manufacturerId' => function () use ($product) {
+                return $product->getData('product_brand');
+            },
+            'manufacturer' => function ($root, $args) use ($product, $that) {
+                return $that->load->resolver('store/manufacturer/get', [
+                    'parent' => $root,
+                    'args' => $args,
+                    'id' => $product->getData('product_brand')
+                ]);
             },
             'model' => function () use ($product) {
                 return $product->getSku();
@@ -145,6 +168,13 @@ class Product extends Resolver
             },
             'products' => function ($root, $args) use ($product, $that) {
                 return $that->getRelatedProducts([
+                    'parent' => $root,
+                    'args' => $args,
+                    'product' => $product
+                ]);
+            },
+            'url' => function ($root, $args) use ($that, $product) {
+                return $that->url([
                     'parent' => $root,
                     'args' => $args,
                     'product' => $product
@@ -362,5 +392,21 @@ class Product extends Resolver
         }
 
         return $images;
+    }
+
+    public function url($data)
+    {
+        /** @var $product \Magento\Catalog\Model\Product */
+        $product = $data['product'];
+        $result = $data['args']['url'];
+
+        $result = str_replace("_id", $product->getId(), $result);
+        $result = str_replace("_name", $product->getName(), $result);
+
+        if ($product->getUrlKey() != '') {
+            $result = '/' . $product->getUrlKey(). $this->_suffix;
+        }
+
+        return $result;
     }
 }

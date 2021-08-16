@@ -13,13 +13,6 @@ export default ({ token, baseURL, app, store }, inject) => {
       'Authorization': `bearer ${token}`
     }
   })
-  console.log({
-    baseURL,
-    headers: {
-      'Content-Type': 'application/json; charset=UTF-8',
-      'Authorization': `bearer ${token}`
-    }
-  })
   /**
    * Convert url to opencart url
    * @param {string} url Source URL

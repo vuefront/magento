@@ -89,7 +89,11 @@ class GraphqlModel implements GraphqlInterface
 
         if ($enable) {
 
-            $output = $this->startup->callback($this->request->getBodyParams(), $this->driver, $this->request->getQueryValue('order_id'));
+            $output = $this->startup->callback(
+                $this->request->getBodyParams(),
+                $this->driver,
+                $this->request->getQueryValue('order_id')
+            );
 
             return $output;
         } else {

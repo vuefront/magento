@@ -36,6 +36,13 @@ class Page extends Resolver
             'keyword' => function () use ($page) {
                 return $page->getIdentifier();
             },
+            'url' => function ($root, $args) use ($page) {
+                return $this->url([
+                    'parent' => $root,
+                    'args' => $args,
+                    'page' => $page
+                ]);
+            },
             'meta' => function () use ($page) {
                 return [
                     'title' => $page->getMetaTitle() != '' ? $page->getMetaTitle() : $page->getTitle(),
@@ -71,5 +78,21 @@ class Page extends Resolver
             'totalPages' => (int)ceil($page_total / $args['size']),
             'totalElements' => (int)$page_total,
         ];
+    }
+
+    public function url($data)
+    {
+        /** @var $page_info \Magento\Cms\Model\Page */
+        $page_info = $data['page'];
+        $result = $data['args']['url'];
+
+        $result = str_replace("_id", $page_info->getId(), $result);
+        $result = str_replace("_name", $page_info->getTitle(), $result);
+
+        if ($page_info->getIdentifier() != "") {
+            $result = '/' . $page_info->getIdentifier();
+        }
+
+        return $result;
     }
 }

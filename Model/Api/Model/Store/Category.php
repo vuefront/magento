@@ -28,6 +28,14 @@ class Category extends Model
 
         $collection->addAttributeToSelect('*');
 
+        if (!empty($data['search'])) {
+            $collection->addFieldToFilter('name', ['like' => '%' . $data['search'] . '%']);
+        }
+
+        if ($data['top']) {
+            $collection->addAttributeToFilter('include_in_menu', array('eq' => $data['top'] ? 1 : 0));
+        }
+
         if ($data['size'] != '-1') {
             $collection->setPage($data['page'], $data['size']);
         }

@@ -3,6 +3,7 @@
 namespace Vuefront\Vuefront\Model\Api\Resolver\Store;
 
 use Magento\Checkout\Model\Session;
+use Magento\Customer\Model\AddressFactory;
 use Magento\Framework\Pricing\Helper\Data;
 use Magento\Framework\UrlInterface;
 use Magento\Shipping\Model\Config;
@@ -87,11 +88,25 @@ class Checkout extends Resolver
      */
     protected $paymentFactory;
 
+    private $_sessionFactory;
+
+    /**
+     * @var \Magento\Customer\Model\AddressFactory
+     */
+    private $_addressFactory;
+
+    /**
+     * @var \Magento\Customer\Model\ResourceModel\Address\CollectionFactory
+     */
+    private $_addressCollectionFactory;
+
     public function __construct(
         Config $shippingModelConfig,
         UrlInterface $url,
         Session $session,
         Data $currencyHelper,
+        \Magento\Customer\Model\ResourceModel\Address\CollectionFactory $addressCollectionFactory,
+        \Magento\Customer\Model\AddressFactory $addressFactory,
         \Magento\Quote\Api\Data\AddressInterface $address,
         \Magento\Checkout\Api\Data\ShippingInformationInterface $shippingInformation,
         \Magento\Checkout\Api\ShippingInformationManagementInterface $shippingInformationManagement,
@@ -103,8 +118,12 @@ class Checkout extends Resolver
         \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
         \Magento\Quote\Model\QuoteManagement $quoteManagement,
         \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
-        \Magento\Quote\Model\Quote\PaymentFactory $paymentFactory
+        \Magento\Quote\Model\Quote\PaymentFactory $paymentFactory,
+        \Magento\Customer\Model\Session $sessionFactory
     ) {
+        $this->_addressCollectionFactory = $addressCollectionFactory;
+        $this->_addressFactory = $addressFactory;
+        $this->_sessionFactory = $sessionFactory;
         $this->_currencyHelper = $currencyHelper;
         $this->url = $url;
         $this->_shippingModelConfig = $shippingModelConfig;
@@ -342,7 +361,7 @@ class Checkout extends Resolver
         $paymentAddress = [];
 
         foreach ($this->paymentAddress()['fields'] as $value) {
-            if(isset($value['defaultValue'])) {
+            if (isset($value['defaultValue'])) {
                 $paymentAddress[$value['name']] = $value['defaultValue'];
             } else {
                 $paymentAddress[$value['name']] = '';
@@ -354,7 +373,7 @@ class Checkout extends Resolver
         $shippingAddress = [];
 
         foreach ($this->shippingAddress() as $value) {
-            if(isset($value['defaultValue'])) {
+            if (isset($value['defaultValue'])) {
                 $shippingAddress[$value['name']] = $value['defaultValue'];
             } else {
                 $shippingAddress[$value['name']] = '';
@@ -374,7 +393,7 @@ class Checkout extends Resolver
         $paymentAddress = [];
 
         foreach ($this->paymentAddress()['fields'] as $value) {
-            if(isset($value['defaultValue'])) {
+            if (isset($value['defaultValue'])) {
                 $paymentAddress[$value['name']] = $value['defaultValue'];
             } else {
                 $paymentAddress[$value['name']] = '';
@@ -392,7 +411,7 @@ class Checkout extends Resolver
         $shippingAddress = [];
 
         foreach ($this->shippingAddress() as $value) {
-            if(isset($value['defaultValue'])) {
+            if (isset($value['defaultValue'])) {
                 $shippingAddress[$value['name']] = $value['defaultValue'];
             } else {
                 $shippingAddress[$value['name']] = '';
@@ -419,6 +438,23 @@ class Checkout extends Resolver
             ->setSaveInAddressBook(0)
             ->setSameAsBilling(0);
 
+        if ($args['shippingAddressId']) {
+            /** @var \Magento\Customer\Model\Address $address */
+            $address = $this->_addressFactory->create()->load($args['shippingAddressId']);
+
+            $payment_address = $this->address
+                ->setFirstname($address->getFirstname())
+                ->setLastname($address->getLastname())
+                ->setStreet($address->getStreet())
+                ->setCity($address->getCity())
+                ->setCountryId($address->getCountryId())
+                ->setRegionId($address->getRegionId())
+                ->setTelephone('phone')
+                ->setPostcode($address->getPostcode())
+                ->setSaveInAddressBook(0)
+                ->setSameAsBilling(0);
+        }
+
         $shipping_information = $this->shippingInformation->setShippingAddress($shipping_address);
 
         if (!empty($args['shippingMethod'])) {
@@ -431,14 +467,10 @@ class Checkout extends Resolver
                 $cartId = $this->checkoutSession->getQuote()->getId();
                 $cartSkuArray = $this->getCartItemsSkus();
                 if ($cartSkuArray) {
-                    try {
-                        $this->shippingInformationManagement->saveAddressInformation($cartId, $shipping_information);
-                    } catch (\Exception $e) {
-                    }
+                    $this->shippingInformationManagement->saveAddressInformation($cartId, $shipping_information);
                 }
             }
         }
-
         $payment_address = $this->address
             ->setFirstname($paymentAddress['firstName'])
             ->setLastname($paymentAddress['lastName'])
@@ -452,6 +484,23 @@ class Checkout extends Resolver
             ->setSaveInAddressBook(0)
             ->setSameAsBilling(0);
 
+        if ($args['paymentAddressId']) {
+            /** @var \Magento\Customer\Model\Address $address */
+            $address = $this->_addressFactory->create()->load($args['paymentAddressId']);
+
+            $payment_address = $this->address
+                ->setFirstname($address->getFirstname())
+                ->setLastname($address->getLastname())
+                ->setStreet($address->getStreet())
+                ->setCity($address->getCity())
+                ->setCountryId($address->getCountryId())
+                ->setRegionId($address->getRegionId())
+                ->setTelephone('phone')
+                ->setPostcode($address->getPostcode())
+                ->setSaveInAddressBook(0)
+                ->setSameAsBilling(0);
+        }
+
         $this->checkoutSession->getQuote()->setCustomerEmail($shippingAddress['email']);
         $this->checkoutSession->getQuote()->setCustomerFirstname($shippingAddress['firstName']);
         $this->checkoutSession->getQuote()->setCustomerLastname($shippingAddress['lastName']);
@@ -460,10 +509,9 @@ class Checkout extends Resolver
         $this->checkoutSession->getQuote()->setBillingAddress($payment_address);
         $this->checkoutSession->getQuote()->setShippingAddress($shipping_address);
 
-
         $this->_sessionManager->setPaymentMethod($args['paymentMethod']);
         $this->_sessionManager->setShippingMethod($args['shippingMethod']);
-        if(!empty($args['paymentMethod'])) {
+        if (!empty($args['paymentMethod'])) {
             $payment = $this->paymentFactory->create();
             $payment->setMethod($args['paymentMethod']);
             $this->checkoutSession->getQuote()->setPayment($payment);
@@ -493,7 +541,8 @@ class Checkout extends Resolver
         ];
     }
 
-    public function getCartItemsSkus() {
+    public function getCartItemsSkus()
+    {
         $cartSkuArray = [];
         $cartItems = $this->checkoutSession->getQuote()->getAllVisibleItems();
         foreach ($cartItems as $product) {
@@ -502,15 +551,14 @@ class Checkout extends Resolver
         return $cartSkuArray;
     }
 
-    public function confirmOrder()
+    public function confirmOrder($args)
     {
         $total = $this->checkoutSession->getQuote()->getGrandTotal();
         $order = $this->quoteManagement->submit($this->checkoutSession->getQuote());
         $paymentMethod = $this->_sessionManager->getPaymentMethod();
 
         $orderId = null;
-
-        if(!$order) {
+        if (!$order) {
             return [];
         }
 
@@ -519,29 +567,48 @@ class Checkout extends Resolver
         $orderId = $order->getIncrementId();
 
          $this->load->model('store/checkout');
-
-        $response = $this->model_store_checkout->requestCheckout(
-            'mutation($paymentMethod: String, $total: Float, $callback: String) {
-                createOrder(paymentMethod: $paymentMethod, total: $total, callback: $callback) {
-                    url
-                }
-            }',
-            array(
+        if ($args['withPayment']) {
+            $response = $this->model_store_checkout->requestCheckout(
+                'mutation($paymentMethod: String, $total: Float, $callback: String,
+                $customerId: String, $customerEmail: String) {
+                createOrder(paymentMethod: $paymentMethod, total: $total,
+                callback: $callback, customerId: $customerId, customerEmail: $customerEmail) {
+                        url
+                    }
+                }',
+                [
                 'paymentMethod' => $paymentMethod,
+                'customerId' => $this->_sessionFactory->isLoggedIn() ?
+                    $this->_sessionFactory->getCustomer()->getId() :
+                    0,
+                'customerEmail' => $this->_sessionFactory->isLoggedIn() ?
+                $this->_sessionFactory->getCustomer()->getEmail() :
+                '',
                 'total' => floatval($total),
-                'callback' => $this->storeManager->getStore()->getBaseUrl(). "rest/V1/vuefront/callback?order_id=".$orderId
-            )
-        );
+                'callback' => $this->storeManager->getStore()->getBaseUrl().
+                    "rest/V1/vuefront/callback?order_id=".$orderId
+                ]
+            );
+        } else {
+            $response = [
+                'createOrder' => [
+                    'url' => '',
+                ]
+            ];
+        }
 
         return [
             'url' => $response['createOrder']['url'],
+            'callback' => $this->storeManager->getStore()->getBaseUrl().
+                    "rest/V1/vuefront/callback?order_id=".$orderId,
             'order' => [
                 'id' => $orderId
             ]
         ];
     }
 
-    public function callback($args) {
+    public function callback($args)
+    {
         $body = $args['body'];
         $orderId = $args['orderId'];
         $status = $body['status'];
@@ -549,7 +616,6 @@ class Checkout extends Resolver
             'orderId' => $orderId,
             'status' => $status
         ]);
-
     }
 
     public function totals()

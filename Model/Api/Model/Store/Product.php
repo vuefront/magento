@@ -52,6 +52,10 @@ class Product extends Model
             $collection->addAttributeToFilter('entity_id', ['in' => $data['ids']]);
         }
 
+        if (!empty($data['manufacturer_id'])) {
+            $collection->addAttributeToFilter('product_brand', ['eq' => $data['manufacturer_id']]);
+        }
+
         if (!empty($data['special'])) {
             $collection->addAttributeToFilter(
                 'special_price',
