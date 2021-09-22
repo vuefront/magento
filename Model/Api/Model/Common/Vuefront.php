@@ -26,7 +26,6 @@ class Vuefront extends Model
     {
         $appSetting['codename'] = $name;
 
-
         $app = $this->_appsFactory->create()->getCollection();
         $app->addFieldToSelect('*');
         $app->addFieldToFilter('codename', ['like' => $name]);

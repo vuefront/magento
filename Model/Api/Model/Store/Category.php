@@ -33,7 +33,7 @@ class Category extends Model
         }
 
         if ($data['top']) {
-            $collection->addAttributeToFilter('include_in_menu', array('eq' => $data['top'] ? 1 : 0));
+            $collection->addAttributeToFilter('include_in_menu', ['eq' => $data['top'] ? 1 : 0]);
         }
 
         if ($data['size'] != '-1') {

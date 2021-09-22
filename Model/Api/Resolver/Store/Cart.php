@@ -54,7 +54,6 @@ class Cart extends Resolver
         $this->_linkRepository    = $linkRepository;
         $this->_sessionFactory = $sessionFactory;
         $this->_quoteModel = $quoteFactory;
-
     }//end __construct()
 
     public function add($args)

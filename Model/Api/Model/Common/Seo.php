@@ -4,8 +4,6 @@ namespace Vuefront\Vuefront\Model\Api\Model\Common;
 
 use \Vuefront\Vuefront\Model\Api\System\Engine\Model;
 use Magefan\Blog\Model\Url;
-
-
 class Seo extends Model
 {
     private $_categoryFactory;
