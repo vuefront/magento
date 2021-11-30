@@ -13,15 +13,17 @@ const load = async (options, inject) => {
   const files = req.keys()
 
   for (const key in files) {
-    const fileName = files[key]
-    if (fileName === './index.js') continue
-    if (fileName === './store.js') continue
-    if (fileName === './i18n.js') continue
-    if (fileName === './router.js') continue
+    try {
+      const fileName = files[key]
+      if (fileName === './index.js') continue
+      if (fileName === './store.js') continue
+      if (fileName === './i18n.js') continue
+      if (fileName === './router.js') continue
 
-    const util = req(fileName).default
+      const util = req(fileName).default
 
-    await util(options, inject)
+      await util(options, inject)
+    } catch(e) {}
   }
 }
 
