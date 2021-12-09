@@ -4,7 +4,6 @@
   "type": "magento2-module",
   "version": "0.3.1",
   "require": {
-    "webonyx/graphql-php": "0.12.6",
     "magefan/module-blog": "2.8.10",
     "ext-json": "*"
   },
