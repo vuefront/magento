@@ -124,6 +124,20 @@ class InformationModel implements InformationInterface
             ];
         }
 
+        if ($this->moduleManager->isOutputEnabled('Ves_Brand')) {
+            $extensions[] = [
+            'name' => 'Ves Brand',
+            'version' => $this->moduleList->getOne('Ves_Brand')['setup_version'],
+            'status' => $this->moduleManager->isEnabled('Ves_Brand')
+            ];
+        } else {
+            $extensions[] = [
+            'name' => 'Ves Brand',
+            'version' => '',
+            "status" => false
+            ];
+        }
+
         $moduleDir = $this->moduleReader->getModuleDir(
             \Magento\Framework\Module\Dir::MODULE_VIEW_DIR,
             'Vuefront_Vuefront'
