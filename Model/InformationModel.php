@@ -126,9 +126,9 @@ class InformationModel implements InformationInterface
 
         if ($this->moduleManager->isOutputEnabled('Ves_Brand')) {
             $extensions[] = [
-            'name' => 'Ves Brand',
-            'version' => $this->moduleList->getOne('Ves_Brand')['setup_version'],
-            'status' => $this->moduleManager->isEnabled('Ves_Brand')
+                'name' => 'Ves Brand',
+                'version' => $this->moduleList->getOne('Ves_Brand')['setup_version'],
+                'status' => $this->moduleManager->isEnabled('Ves_Brand')
             ];
         } else {
             $extensions[] = [
