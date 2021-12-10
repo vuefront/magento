@@ -4,9 +4,9 @@
   "type": "magento2-module",
   "version": "0.3.1",
   "require": {
-    "webonyx/graphql-php": "0.13.9",
-    "magefan/module-blog": "*",
-    "venustheme/module-brand": "*",
+    "webonyx/graphql-php": ">=0.12.6",
+    "magefan/module-blog": ">=2.8.10",
+    "venustheme/module-brand": ">=1.0.3",
     "ext-json": "*"
   },
   "license": [
