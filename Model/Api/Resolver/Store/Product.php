@@ -51,6 +51,7 @@ class Product extends Resolver
     public function get($args)
     {
         $this->load->model('store/product');
+        $this->load->model('store/manufacturer');
 
         /** @var $product \Magento\Catalog\Model\Product */
         if (!isset($args['product'])) {
@@ -116,13 +117,17 @@ class Product extends Resolver
                 return $special;
             },
             'manufacturerId' => function () use ($product) {
-                return $product->getData('product_brand');
+                $manufacturerInfo = $this->model_store_manufacturer
+                    ->getManufacturerByOption($product->getData('manufacturer'));
+                return $manufacturerInfo->getData('shopbrand_id');
             },
             'manufacturer' => function ($root, $args) use ($product, $that) {
+                $manufacturerInfo = $this->model_store_manufacturer
+                    ->getManufacturerByOption($product->getData('manufacturer'));
                 return $that->load->resolver('store/manufacturer/get', [
                     'parent' => $root,
                     'args' => $args,
-                    'id' => $product->getData('product_brand')
+                    'id' => $manufacturerInfo->getData('shopbrand_id')
                 ]);
             },
             'model' => function () use ($product) {

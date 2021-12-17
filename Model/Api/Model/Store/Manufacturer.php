@@ -10,8 +10,8 @@ class Manufacturer extends Model
     private $_manufacturerFactory;
 
     public function __construct(
-        \Ves\Brand\Model\ResourceModel\Brand\CollectionFactory $collectionFactory,
-        \Ves\Brand\Model\BrandFactory $manufacturerFactory
+        \Magiccart\Shopbrand\Model\ResourceModel\Shopbrand\CollectionFactory $collectionFactory,
+        \Magiccart\Shopbrand\Model\ShopbrandFactory $manufacturerFactory
     ) {
         $this->_collectionFactory = $collectionFactory;
         $this->_manufacturerFactory = $manufacturerFactory;
@@ -20,6 +20,19 @@ class Manufacturer extends Model
     public function getManufacturer($manufacturer_id)
     {
         return $this->_manufacturerFactory->create()->load($manufacturer_id);
+    }
+
+    public function getManufacturerByOption($option_id)
+    {
+        $collection = $this->_collectionFactory->create();
+
+        $collection->addFieldToSelect('*');
+
+        $collection->addFieldToFilter('option_id', ['eq' => $option_id]);
+
+        $collection->load();
+
+        return $collection->getFirstItem();
     }
 
     public function getManufacturers($data = [])
@@ -33,7 +46,8 @@ class Manufacturer extends Model
         }
 
         if ($data['size'] != '-1') {
-            $collection->setPage($data['page'], $data['size']);
+            $collection->setPageSize($data['size']);
+            $collection->setCurPage($data['page']);
         }
 
         if (isset($data['order']) && ($data['order'] == 'DESC')) {
@@ -43,17 +57,17 @@ class Manufacturer extends Model
         }
 
         $sort_data = [
-            'id' => 'brand_id',
-            'sort_order' => 'position'
+            'id' => 'shopbrand_id',
+            'sort_order' => 'order'
         ];
 
         if (isset($data['sort']) && in_array($data['sort'], array_keys($sort_data))) {
             $sort = $sort_data[$data['sort']];
         } else {
-            $sort = "position";
+            $sort = "order";
         }
 
-        $collection->setOrder($sort, $order);
+        $collection->setOrder("`" . $sort . "`", $order);
 
         $collection->load();
 

@@ -124,15 +124,15 @@ class InformationModel implements InformationInterface
             ];
         }
 
-        if ($this->moduleManager->isOutputEnabled('Ves_Brand')) {
+        if ($this->moduleManager->isOutputEnabled('Magiccart_Shopbrand')) {
             $extensions[] = [
-                'name' => 'Ves Brand',
-                'version' => $this->moduleList->getOne('Ves_Brand')['setup_version'],
-                'status' => $this->moduleManager->isEnabled('Ves_Brand')
+                'name' => 'Shop by Brand',
+                'version' => $this->moduleList->getOne('Magiccart_Shopbrand')['setup_version'],
+                'status' => $this->moduleManager->isEnabled('Magiccart_Shopbrand')
             ];
         } else {
             $extensions[] = [
-            'name' => 'Ves Brand',
+            'name' => 'Shop by Brand',
             'version' => '',
             "status" => false
             ];

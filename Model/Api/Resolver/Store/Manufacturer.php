@@ -3,7 +3,6 @@
 namespace Vuefront\Vuefront\Model\Api\Resolver\Store;
 
 use \Vuefront\Vuefront\Model\Api\System\Engine\Resolver;
-use function Safe\eio_busy;
 
 class Manufacturer extends Resolver
 {
@@ -21,14 +20,18 @@ class Manufacturer extends Resolver
         $this->_imageFactory = $imageFactory;
         $this->_scopeConfig = $scopeConfig;
         $this->_suffix = $this->_scopeConfig->getValue('catalog/seo/category_url_suffix');
-        $this->brand = $moduleManager->isOutputEnabled('Ves_Brand');
+        $this->brand = $moduleManager->isOutputEnabled('Magiccart_Shopbrand');
     }
     public function get($args)
     {
         if ($this->brand) {
             $this->load->model('store/manufacturer');
 
-            /** @var $manufacturer \Ves\Brand\Model\Brand */
+            if ($args['id'] === null) {
+                return [];
+            }
+
+            /** @var $manufacturer \Magiccart\Shopbrand\Model\Shopbrand */
             if (!isset($args['manufacturer'])) {
                 $manufacturer = $this->model_store_manufacturer->getManufacturer($args['id']);
             } else {
@@ -41,14 +44,14 @@ class Manufacturer extends Resolver
                     return $manufacturer->getId();
                 },
                 'name' => function () use ($manufacturer) {
-                    return $manufacturer->getData('name');
+                    return $manufacturer->getData('title');
                 },
                 'sort_order' => function () use ($manufacturer) {
-                    return $manufacturer->getData('position');
+                    return $manufacturer->getData('order');
                 },
                 'image' => function () use ($manufacturer, $that) {
-                    return $manufacturer->getData('thumbnail') ?
-                        $that->image->getUrl($manufacturer->getData('thumbnail')) :
+                    return $manufacturer->getData('image') ?
+                        $that->image->getUrl($manufacturer->getData('image')) :
                         '';
                 },
                 'imageBig' => function () use ($manufacturer, $that) {
@@ -57,9 +60,9 @@ class Manufacturer extends Resolver
                         '';
                 },
                 'imageLazy' => function () use ($manufacturer, $that) {
-                    if ($manufacturer->getData('thumbnail')) {
+                    if ($manufacturer->getData('image')) {
                         $resizedImage = $this->_imageFactory->create()
-                            ->setImageFile($manufacturer->getData('thumbnail'))
+                            ->setImageFile($manufacturer->getData('image'))
                             ->constrainOnly(true)
                             ->keepAspectRatio(true)
                             ->keepTransparency(true)
@@ -88,11 +91,12 @@ class Manufacturer extends Resolver
         if ($this->brand) {
             $this->load->model('store/manufacturer');
 
-            /** @var $collection \Ves\Brand\Model\ResourceModel\Brand\Collection */
+            /** @var $collection \Magiccart\Shopbrand\Model\ResourceModel\Shopbrand\Collection  */
             $collection = $this->model_store_manufacturer->getManufacturers($args);
             $manufacturer_total = $collection->getSize();
 
             $manufacturers = [];
+
 
             foreach ($collection->getItems() as $manufacturer) {
                 $manufacturers[] = $this->get(['manufacturer' => $manufacturer]);
@@ -116,15 +120,15 @@ class Manufacturer extends Resolver
     }
     public function url($data)
     {
-        /** @var $manufacturer_info \Ves\Brand\Model\Brand */
+        /** @var $manufacturer_info \Magiccart\Shopbrand\Model\Shopbrand */
         $manufacturer_info = $data['manufacturer'];
         $result = $data['args']['url'];
 
         $result = str_replace("_id", $manufacturer_info->getId(), $result);
-        $result = str_replace("_name", $manufacturer_info->getData('name'), $result);
+        $result = str_replace("_name", $manufacturer_info->getData('title'), $result);
 
-        if ($manufacturer_info->getUrlKey() != "") {
-            $result = '/' . $manufacturer_info->getUrlKey(). $this->_suffix;
+        if ($manufacturer_info->getData('urlkey') != "") {
+            $result = '/' . $manufacturer_info->getData('urlkey'). $this->_suffix;
         }
 
         return $result;

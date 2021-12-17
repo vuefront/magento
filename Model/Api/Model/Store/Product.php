@@ -53,7 +53,9 @@ class Product extends Model
         }
 
         if (!empty($data['manufacturer_id'])) {
-            $collection->addAttributeToFilter('product_brand', ['eq' => $data['manufacturer_id']]);
+            $this->load->model('store/manufacturer');
+            $manufacturer_info = $this->model_store_manufacturer->getManufacturer($data['manufacturer_id']);
+            $collection->addAttributeToFilter('manufacturer', ['eq' => $manufacturer_info->getData('option_id')]);
         }
 
         if (!empty($data['special'])) {

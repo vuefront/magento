@@ -25,7 +25,7 @@ class Seo extends Model
         \Magefan\Blog\Model\ResourceModel\Category\CollectionFactory $blogCategoryCollectionFactory,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \Magento\Catalog\Model\ResourceModel\Product\CollectionFactory $productCollectionFactory,
-        \Ves\Brand\Model\ResourceModel\Brand\CollectionFactory $manufacturerCollectionFactory,
+        \Magiccart\Shopbrand\Model\ResourceModel\Shopbrand\CollectionFactory $manufacturerCollectionFactory,
         Url $url
     ) {
         $this->_blogCategoryCollectionFactory = $blogCategoryCollectionFactory;
@@ -80,7 +80,7 @@ class Seo extends Model
         }
 
         $result = $this->_manufacturerCollectionFactory->create()
-            ->addFieldToFilter('url_key', ['like' => $url_key])->load();
+            ->addFieldToFilter('urlkey', ['like' => $url_key])->load();
 
         if (count($result->getItems()) > 0) {
             $manufacturer = $result->getFirstItem();
