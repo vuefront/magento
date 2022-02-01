@@ -77,8 +77,8 @@ class Category extends Resolver
             'meta' => function () use ($category) {
                 return [
                     'title' => $category->getMetaTitle() != '' ? $category->getMetaTitle() : $category->getName(),
-                    'description' => $category->getMetaDescription(),
-                    'keyword' => $category->getMetaKeywords()
+                    'description' => $category->getMetaDescription() ? $category->getMetaDescription() : '',
+                    'keyword' => $category->getMetaKeywords() ? $category->getMetaKeywords() : ''
                 ];
             }
         ];

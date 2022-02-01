@@ -99,8 +99,8 @@ class Post extends Resolver
                 'meta' => function () use ($post) {
                     return [
                         'title' => $post->getMetaTitle() != '' ? $post->getMetaTitle() : $post->getTitle(),
-                        'description' => $post->getMetaDescription(),
-                        'keyword' => $post->getMetaKeywords()
+                        'description' => $post->getMetaDescription() ? $post->getMetaDescription() : '',
+                        'keyword' => $post->getMetaKeywords() ? $post->getMetaKeywords() : ''
                     ];
                 }
             ];

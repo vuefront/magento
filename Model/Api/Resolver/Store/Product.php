@@ -155,7 +155,7 @@ class Product extends Resolver
             },
             'stock' => function () use ($product) {
                 $stockItem =$this->_stockRegistry->getStockItem($product->getId());
-                 return !!$stockItem->getIsInStock();
+                return !!$stockItem->getIsInStock();
             },
             'rating' => function () use ($product) {
                 $this->_reviewFactory->create()->getEntitySummary($product);
@@ -209,8 +209,8 @@ class Product extends Resolver
             'meta' => function () use ($product) {
                 return [
                     'title' => $product->getMetaTitle() != '' ? $product->getMetaTitle() : $product->getName(),
-                    'description' => $product->getMetaDescription(),
-                    'keyword' => $product->getMetaKeywords()
+                    'description' => $product->getMetaDescription() ? $product->getMetaDescription() : '',
+                    'keyword' => $product->getMetaKeywords() ? $product->getMetaKeywords() : ''
                 ];
             }
         ];

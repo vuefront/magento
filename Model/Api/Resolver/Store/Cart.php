@@ -157,6 +157,24 @@ class Cart extends Resolver
         return $this->get($args);
     }//end remove()
 
+    public function clearCart($args)
+    {
+        $this->_cartModel->truncate()->save();
+
+        $this->load->model('common/vuefront');
+        $this->load->model('store/cart');
+
+        $this->model_common_vuefront->pushEvent("update_cart", [
+            "cart" => $this->model_store_cart->prepareCart(),
+            "customer_id" => $this->_sessionFactory->isLoggedIn() ?
+                $this->_sessionFactory->getCustomer()->getId():
+                0,
+            "guest" => $this->_sessionFactory->isLoggedIn() ? false : true
+        ]);
+
+        return $this->get($args);
+    }
+
     public function getQuote()
     {
         return $this->_cartModel->getQuote();

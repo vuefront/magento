@@ -11,7 +11,6 @@ class Category extends Resolver
     public function __construct(
         \Magento\Framework\Module\Manager $moduleManager
     ) {
-
         $this->blog = $moduleManager->isOutputEnabled('Magefan_Blog');
     }
 
@@ -61,8 +60,8 @@ class Category extends Resolver
                 'meta' => function () use ($category) {
                     return [
                         'title' => $category->getMetaTitle() != '' ? $category->getMetaTitle() : $category->getTitle(),
-                        'description' => $category->getMetaDescription(),
-                        'keyword' => $category->getMetaKeywords()
+                        'description' => $category->getMetaDescription() ? $category->getMetaDescription() : '',
+                        'keyword' => $category->getMetaKeywords() ? $category->getMetaKeywords() : ''
                     ];
                 }
             ];

@@ -95,11 +95,14 @@ class Account extends Resolver
 
         $that = $this;
 
+        $address = $customer->getPrimaryBillingAddress();
+
         return [
             'id'        => $customer->getId(),
             'firstName' => $customer->getFirstname(),
             'lastName'  => $customer->getLastname(),
             'email'     => $customer->getEmail(),
+            'phone'     => $address ? $address->getTelephone() : ''
         ];
     }
 
@@ -146,7 +149,7 @@ class Account extends Resolver
             'customer_id' => $customer->getId(),
             'firstname' => $customer->getFirstname(),
             'lastname' => $customer->getLastname(),
-            'email' => $customer->getEmail()
+            'email' => $customer->getEmail(),
         ]);
         $this->_sessionFactory->logout();
 
@@ -216,11 +219,14 @@ class Account extends Resolver
      */
     public function get($customer)
     {
+        $address = $customer->getPrimaryBillingAddress();
+
         return [
             'id' => $customer->getId(),
             'email' => $customer->getEmail(),
             'firstName' => $customer->getFirstname(),
             'lastName' => $customer->getLastname(),
+            'phone' => $address ? $address->getTelephone() : ''
         ];
     }
 

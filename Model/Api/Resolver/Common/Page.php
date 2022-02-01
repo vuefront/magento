@@ -46,8 +46,8 @@ class Page extends Resolver
             'meta' => function () use ($page) {
                 return [
                     'title' => $page->getMetaTitle() != '' ? $page->getMetaTitle() : $page->getTitle(),
-                    'description' => $page->getMetaDescription(),
-                    'keyword' => $page->getMetaKeywords()
+                    'description' => $page->getMetaDescription() ? $page->getMetaDescription() : '',
+                    'keyword' => $page->getMetaKeywords() ? $page->getMetaKeywords() : ''
                 ];
             }
         ];
