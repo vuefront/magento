@@ -11,9 +11,9 @@ class Post extends Model
     private $_categoryFactory;
 
     public function __construct(
-        \Magefan\Blog\Model\ResourceModel\Post\CollectionFactory $collectionFactory,
-        \Magefan\Blog\Model\PostFactory $postFactory,
-        \Magefan\Blog\Model\CategoryFactory $categoryFactory
+        \Vuefront\Blog\Model\ResourceModel\Post\CollectionFactory $collectionFactory,
+        \Vuefront\Blog\Model\PostFactory $postFactory,
+        \Vuefront\Blog\Model\CategoryFactory $categoryFactory
     ) {
         $this->_collectionFactory = $collectionFactory;
         $this->_postFactory = $postFactory;
@@ -27,7 +27,7 @@ class Post extends Model
 
     public function getPosts($data)
     {
-        /** @var $collection \Magefan\Blog\Model\ResourceModel\Post\Collection */
+        /** @var $collection \Vuefront\Blog\Model\ResourceModel\Post\Collection */
         $collection = $this->_collectionFactory->create();
 
         if ($data['category_id'] != 0) {
@@ -42,13 +42,13 @@ class Post extends Model
 
         $sort_data = [
             'id' => 'post_id',
-            'sort_order' => 'position'
+            'sort_order' => 'date_added'
         ];
 
         if (isset($data['sort']) && in_array($data['sort'], array_keys($sort_data))) {
             $sort = $sort_data[$data['sort']];
         } else {
-            $sort = "position";
+            $sort = "date_added";
         }
 
         $collection->setOrder($sort, $order);
@@ -60,12 +60,12 @@ class Post extends Model
 
     public function getNextPost($post_id)
     {
-        /** @var $collection \Magefan\Blog\Model\ResourceModel\Post\Collection */
+        /** @var $collection \Vuefront\Blog\Model\ResourceModel\Post\Collection */
         $collection = $this->_collectionFactory->create();
 
         $collection->addFieldToFilter('post_id', ['gt' => $post_id]);
 
-        $collection->setOrder('publish_time', 'ASC');
+        $collection->setOrder('date_added', 'ASC');
 
         $collection->load();
 
@@ -74,7 +74,7 @@ class Post extends Model
 
     public function getPrevPost($post_id)
     {
-        /** @var $collection \Magefan\Blog\Model\ResourceModel\Post\Collection */
+        /** @var $collection \Vuefront\Blog\Model\ResourceModel\Post\Collection */
         $collection = $this->_collectionFactory->create();
 
         $collection->addFieldToFilter('post_id', ['lt' => $post_id]);

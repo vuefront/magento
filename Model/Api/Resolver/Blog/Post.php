@@ -11,14 +11,14 @@ class Post extends Resolver
     public function __construct(
         \Magento\Framework\Module\Manager $moduleManager
     ) {
-        $this->blog = $moduleManager->isOutputEnabled('Magefan_Blog');
+        $this->blog = $moduleManager->isOutputEnabled('Vuefront_Blog');
     }
 
     public function get($args)
     {
         if ($this->blog) {
             $this->load->model('blog/post');
-            /** @var $post \Magefan\Blog\Model\Post */
+            /** @var $post \Vuefront\Blog\Model\Post */
             if (!isset($args['post'])) {
                 $post = $this->model_blog_post->getPost($args['id']);
             } else {
@@ -38,28 +38,33 @@ class Post extends Resolver
                     return $post->getTitle();
                 },
                 'shortDescription' => function () use ($post) {
-                    return $post->getShortContent();
+                    return $post->getShortDescription();
                 },
                 'description' => function () use ($post) {
-                    return $post->getContent();
+                    return $post->getDescription();
                 },
                 'keyword' => function () use ($post) {
                     return $post->getUrl();
                 },
                 'datePublished' => function () use ($post) {
-                    return $post->getPublishDate('l d F Y');
+                    return $post->getDatePublished();
                 },
-                'rating' => null,
+                'rating' => function () use ($post) {
+                    return $post->getRating();
+                },
                 'image' => function () use ($post) {
-                    return $post->getFeaturedImage() ? $post->getFeaturedImage() : '';
+                    return $post->getImageUrl();
                 },
                 'imageLazy' => function () use ($post, $that) {
-                    if ($post->getData('featured_img')) {
-                        $thumbLazy = $that->image->resize($post->getData('featured_img'), 10, 10, '');
+                    if ($post->getData('image')) {
+                        return $that->image->resize(
+                            'vuefront_blog/post/image'.$post->getData('image'),
+                            10,
+                            10
+                        );
                     } else {
-                        $thumbLazy = '';
+                        return '';
                     }
-                    return $thumbLazy;
                 },
                 'categories' => function ($root, $args) use ($post, $that) {
                     return $that->load->resolver('blog/post/categories', [
@@ -123,7 +128,7 @@ class Post extends Resolver
             if ($args['category_id'] !== 0) {
                 $filter_data['filter_category_id'] = $args['category_id'];
             }
-            /** @var $collection \Magefan\Blog\Model\ResourceModel\Post\Collection */
+            /** @var $collection \Vuefront\Blog\Model\ResourceModel\Post\Collection */
             $collection = $this->model_blog_post->getPosts($args);
             $product_total = $collection->getSize();
 
@@ -153,16 +158,16 @@ class Post extends Resolver
     public function categories($args)
     {
         if ($this->blog) {
-            /** @var $post Magefan\Blog\Model\Post */
+            /** @var $post Vuefront\Blog\Model\Post */
             $post = $args['post'];
 
-            $collection = $post->getParentCategories();
+            $collection = $post->getCategories();
 
             $categories = [];
-            foreach ($collection->getItems() as $category) {
+            foreach ($collection as $category) {
                 $categories[] = $this->load->resolver(
                     'blog/category/get',
-                    ['category' => $category]
+                    ['id' => $category]
                 );
             }
             return $categories;
@@ -175,9 +180,9 @@ class Post extends Resolver
     {
         if ($this->blog) {
             $this->load->model('blog/post');
-            /** @var $post Magefan\Blog\Model\Post */
+            /** @var $post Vuefront\Blog\Model\Post */
             $post = $args['post'];
-            /** @var $collection \Magefan\Blog\Model\ResourceModel\Post\Collection */
+            /** @var $collection \Vuefront\Blog\Model\ResourceModel\Post\Collection */
             $collection = $this->model_blog_post->getPrevPost($post->getId());
             if ($collection->getSize() == 0) {
                 return null;
@@ -192,9 +197,9 @@ class Post extends Resolver
     {
         if ($this->blog) {
             $this->load->model('blog/post');
-            /** @var $post Magefan\Blog\Model\Post */
+            /** @var $post Vuefront\Blog\Model\Post */
             $post = $args['post'];
-            /** @var $collection \Magefan\Blog\Model\ResourceModel\Post\Collection */
+            /** @var $collection \Vuefront\Blog\Model\ResourceModel\Post\Collection */
             $collection = $this->model_blog_post->getNextPost($post->getId());
             if ($collection->getSize() == 0) {
                 return null;
@@ -206,7 +211,7 @@ class Post extends Resolver
     }
     public function url($data)
     {
-        /** @var $category_info \Magefan\Blog\Model\Post */
+        /** @var $category_info \Vuefront\Blog\Model\Post */
         $category_info = $data['post'];
         $result = $data['args']['url'];
 

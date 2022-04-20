@@ -15,12 +15,12 @@ class Review extends Resolver
      */
     private $_session;
     /**
-     * @var \Magefan\Blog\Model\CommentFactory
+     * @var \Vuefront\Blog\Model\CommentFactory
      */
     private $_commentFactory;
 
     public function __construct(
-        \Magefan\Blog\Model\CommentFactory $commentFactory,
+        \Vuefront\Blog\Model\CommentFactory $commentFactory,
         \Magento\Customer\Model\Session $session,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
     ) {
@@ -32,40 +32,14 @@ class Review extends Resolver
     public function add($args)
     {
         $comment = $this->_commentFactory->create();
-
         $comment->setData([
             'post_id' => $args['id'],
-            'author_nickname' => $args['author'],
-            'author_email' => '',
-            'text' => $args['content']
+            'rating' => $args['rating'],
+            'author' => $args['author'],
+            'description' => $args['content']
         ]);
 
-        $comment->setStatus(
-            $this->getConfigValue(
-                \Magefan\Blog\Helper\Config::COMMENT_STATUS
-            )
-        );
-
-        if ($this->_session->getCustomerGroupId()) {
-            /* Customer */
-            $comment->setCustomerId(
-                $this->_session->getCustomerId()
-            )->setAuthorNickname(
-                $this->_session->getCustomer()->getName()
-            )->setAuthorEmail(
-                $this->_session->getCustomer()->getEmail()
-            )->setAuthorType(
-                \Magefan\Blog\Model\Config\Source\AuthorType::CUSTOMER
-            );
-        } elseif ($this->getConfigValue(
-            \Magefan\Blog\Helper\Config::GUEST_COMMENT
-        )) {
-            $comment->setCustomerId(0)->setAuthorType(
-                \Magefan\Blog\Model\Config\Source\AuthorType::GUEST
-            );
-        } else {
-            throw new \Magento\Framework\Exception\LocalizedException(__('Login to submit comment'));
-        }
+        $comment->setStatus(0);
 
         $comment->save();
 
@@ -74,20 +48,20 @@ class Review extends Resolver
 
     public function get($data)
     {
-        /** @var $post \Magefan\Blog\Model\Post */
+        /** @var $post \Vuefront\Blog\Model\Post */
         $post = $data['post'];
-        /** @var \Magefan\Blog\Model\ResourceModel\Comment\Collection $collection */
+        /** @var \Vuefront\Blog\Model\ResourceModel\Comment\Collection $collection */
         $collection = $post->getComments();
 
         $comments = [];
-        /** @var \Magefan\Blog\Model\Comment $comment */
+        /** @var \Vuefront\Blog\Model\Comment $comment */
         foreach ($collection->getItems() as $comment) {
             $comments[] = [
-                'author' => $comment->getAuthorNickname(),
-                'author_email' => $comment->getAuthorEmail(),
-                'created_at' => $comment->getPublishDate(),
-                'content' => $comment->getText(),
-                'rating' => null
+                'author' => $comment->getAuthor(),
+                'author_email' => '',
+                'created_at' => $comment->getDateAdded(),
+                'content' => $comment->getDescription(),
+                'rating' => $comment->getRating()
             ];
         }
 
@@ -95,13 +69,5 @@ class Review extends Resolver
             'content' => $comments,
             'totalElements' => $post->getCommentsCount()
         ];
-    }
-
-    public function getConfigValue($path)
-    {
-        return $this->_scopeConfig->getValue(
-            $path,
-            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
-        );
     }
 }

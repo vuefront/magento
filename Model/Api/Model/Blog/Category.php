@@ -10,8 +10,8 @@ class Category extends Model
     private $_categoryFactory;
 
     public function __construct(
-        \Magefan\Blog\Model\ResourceModel\Category\CollectionFactory $collectionFactory,
-        \Magefan\Blog\Model\CategoryFactory $categoryFactory
+        \Vuefront\Blog\Model\ResourceModel\Category\CollectionFactory $collectionFactory,
+        \Vuefront\Blog\Model\CategoryFactory $categoryFactory
     ) {
         $this->_collectionFactory = $collectionFactory;
         $this->_categoryFactory = $categoryFactory;
@@ -24,27 +24,21 @@ class Category extends Model
 
     public function getCategories($data = [])
     {
-        /** @var $collection \Magefan\Blog\Model\ResourceModel\Category\Collection */
+        /** @var $collection \Vuefront\Blog\Model\ResourceModel\Category\Collection */
         $collection = $this->_collectionFactory->create();
-        $collection->addActiveFilter();
-        $collection->addStoreFilter($this->store->getStoreId());
+
+        // $collection->addStoreFilter($this->store->getStoreId());
 
         if ($data['size'] != '-1') {
             $collection->setPageSize($data['size']);
             $collection->setCurPage($data['page']);
         }
 
-        if ($data['parent'] !== -1) {
-            if ($data['parent'] != 0) {
-                $collection->addFieldToFilter(
-                    'category_id',
-                    [
-                        'in' => $this->_categoryFactory->create()->load($data['parent'])->getChildrenIds(false)
-                    ]
-                );
-
+        if ($data['parent'] != -1) {
+            if ($data['parent'] == 0) {
+                $collection->addFieldToFilter('parent_id', 0);
             } else {
-                $collection->addFieldToFilter('path', ['null' => true]);
+                $collection->addFieldToFilter('parent_id', $data['parent']);
             }
         }
 
@@ -55,15 +49,15 @@ class Category extends Model
         }
 
         $sort_data = [
-            'id' => 'category_id',
-            'name' => 'title',
-            'sort_order' => 'position'
+           'id' => 'category_id',
+           'name' => 'title',
+           'sort_order' => 'sort_order'
         ];
 
         if (isset($data['sort']) && in_array($data['sort'], array_keys($sort_data))) {
             $sort = $sort_data[$data['sort']];
         } else {
-            $sort = "position";
+            $sort = "sort_order";
         }
 
         $collection->setOrder($sort, $order);

@@ -11,19 +11,22 @@ class Category extends Resolver
     public function __construct(
         \Magento\Framework\Module\Manager $moduleManager
     ) {
-        $this->blog = $moduleManager->isOutputEnabled('Magefan_Blog');
+        $this->blog = $moduleManager->isOutputEnabled('Vuefront_Blog');
     }
 
     public function get($data)
     {
         if ($this->blog) {
             $this->load->model('blog/category');
-            /** @var $category \Magefan\Blog\Model\Category */
+
+            /** @var $category \Vuefront\Blog\Model\Category */
             if (!isset($data['category'])) {
                 $category = $this->model_blog_category->getCategory($data['id']);
             } else {
                 $category = $data['category'];
             }
+
+            $that = $this;
 
             return [
                 'id' => function () use ($category) {
@@ -33,7 +36,7 @@ class Category extends Resolver
                     return $category->getTitle();
                 },
                 'description' => function () use ($category) {
-                    return $category->getContent();
+                    return $category->getDescription();
                 },
                 'parent_id' => function () use ($category) {
                     return $category->getParentId();
@@ -41,8 +44,20 @@ class Category extends Resolver
                 'keyword' => function () use ($category) {
                     return $category->getUrl();
                 },
-                'image' => '',
-                'imageLazy' => '',
+                'image' => function () use ($category) {
+                    return $category->getImageUrl();
+                },
+                'imageLazy' => function () use ($category, $that) {
+                    if ($category->getData('image')) {
+                        return $that->image->resize(
+                            'vuefront_blog/category/image'.$category->getData('image'),
+                            10,
+                            10
+                        );
+                    } else {
+                        return '';
+                    }
+                },
                 'url' => function ($root, $args) use ($category) {
                     return $this->url([
                         'parent' => $root,
@@ -84,8 +99,7 @@ class Category extends Resolver
             if ($args['parent'] !== -1) {
                 $filter_data['filter_parent_id'] = $args['parent'];
             }
-
-            /** @var $collection \Magefan\Blog\Model\ResourceModel\Category\Collection */
+            /** @var $collection \Vuefront\Blog\Model\ResourceModel\Category\Collection */
             $collection = $this->model_blog_category->getCategories($args);
 
             $category_total = $collection->getSize();
@@ -116,10 +130,10 @@ class Category extends Resolver
     public function child($data)
     {
         $this->load->model('blog/category');
-        /** @var $category \Magefan\Blog\Model\Category */
+        /** @var $category \Vuefront\Blog\Model\Category */
         $category = $data['category'];
 
-        /** @var $blog_categories \Magefan\Blog\Model\ResourceModel\Category\Collection */
+        /** @var $blog_categories \Vuefront\Blog\Model\ResourceModel\Category\Collection */
         $blog_categories = $this->model_blog_category->getCategories(['parent' => $category->getId(), 'size' => -1]);
 
         $categories = [];
@@ -133,7 +147,7 @@ class Category extends Resolver
 
     public function url($data)
     {
-        /** @var $category_info \Magefan\Blog\Model\Category */
+        /** @var $category_info \Vuefront\Blog\Model\Category */
         $category_info = $data['category'];
         $result = $data['args']['url'];
 

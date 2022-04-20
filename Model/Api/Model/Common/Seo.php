@@ -3,7 +3,10 @@
 namespace Vuefront\Vuefront\Model\Api\Model\Common;
 
 use \Vuefront\Vuefront\Model\Api\System\Engine\Model;
-use Magefan\Blog\Model\Url;
+use \Vuefront\Blog\Model\Post as Post;
+use \Vuefront\Blog\Model\Category as BlogCategory;
+use \Vuefront\Brands\Model\Brand as Brand;
+
 class Seo extends Model
 {
     private $_categoryFactory;
@@ -15,21 +18,18 @@ class Seo extends Model
     private $_manufacturerCollectionFactory;
     private $_scopeConfig;
     private $_suffix;
-    private $_url;
 
     public function __construct(
         \Magento\Catalog\Model\CategoryFactory $categoryFactory,
         \Magento\Catalog\Model\ResourceModel\Category\CollectionFactory $categoryCollectionFactory,
         \Magento\Cms\Model\ResourceModel\Page\CollectionFactory $pageCollectionFactory,
-        \Magefan\Blog\Model\ResourceModel\Post\CollectionFactory $postCollectionFactory,
-        \Magefan\Blog\Model\ResourceModel\Category\CollectionFactory $blogCategoryCollectionFactory,
+        \Vuefront\Blog\Model\ResourceModel\Post\CollectionFactory $postCollectionFactory,
+        \Vuefront\Blog\Model\ResourceModel\Category\CollectionFactory $blogCategoryCollectionFactory,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \Magento\Catalog\Model\ResourceModel\Product\CollectionFactory $productCollectionFactory,
-        \Magiccart\Shopbrand\Model\ResourceModel\Shopbrand\CollectionFactory $manufacturerCollectionFactory,
-        Url $url
+        \Vuefront\Brands\Model\ResourceModel\Brand\CollectionFactory $manufacturerCollectionFactory
     ) {
         $this->_blogCategoryCollectionFactory = $blogCategoryCollectionFactory;
-        $this->_url = $url;
         $this->_categoryCollectionFactory = $categoryCollectionFactory;
         $this->_categoryFactory = $categoryFactory;
         $this->_scopeConfig = $scopeConfig;
@@ -79,8 +79,12 @@ class Seo extends Model
             ];
         }
 
+        $manufacturer_url = str_replace('/'.Brand::URL_PREFIX, '', $keyword);
+        $manufacturer_url = rtrim($manufacturer_url, Brand::URL_EXT);
+        $manufacturer_url = ltrim($manufacturer_url, '/');
+
         $result = $this->_manufacturerCollectionFactory->create()
-            ->addFieldToFilter('urlkey', ['like' => $url_key])->load();
+            ->addFieldToFilter('keyword', ['like' => $manufacturer_url])->load();
 
         if (count($result->getItems()) > 0) {
             $manufacturer = $result->getFirstItem();
@@ -91,30 +95,28 @@ class Seo extends Model
             ];
         }
 
-        $blog_post_url = ltrim($keyword, '/'.$this->_url->getRoute());
-        $blog_post_url = ltrim($blog_post_url, '/'.$this->_url->getRoute('post'));
-        $blog_post_url = rtrim($blog_post_url, $this->_url->getUrlSufix('post'));
+        $blog_post_url = str_replace('/'.Post::URL_PREFIX, '', $keyword);
+        $blog_post_url = rtrim($blog_post_url, Post::URL_EXT);
         $blog_post_url = ltrim($blog_post_url, '/');
 
         $result = $this->_postCollectionFactory->create()
-            ->addFieldToFilter('identifier', ['like' => $blog_post_url])->load();
+            ->addFieldToFilter('keyword', ['like' => $blog_post_url])->load();
 
         if (count($result->getItems()) > 0) {
-            $post = $result->getFirstItem();
-            return [
-                'type' => 'blog-post',
-                'id' => $post->getId(),
-                'url' => $keyword
-            ];
+             $post = $result->getFirstItem();
+             return [
+                 'type' => 'blog-post',
+                 'id' => $post->getId(),
+                 'url' => $keyword
+             ];
         }
 
-        $blog_category_url = ltrim($keyword, '/'.$this->_url->getRoute());
-        $blog_category_url = ltrim($blog_category_url, '/'.$this->_url->getRoute('category'));
-        $blog_category_url = rtrim($blog_category_url, $this->_url->getUrlSufix('category'));
+        $blog_category_url = str_replace('/'.BlogCategory::URL_PREFIX, '', $keyword);
+        $blog_category_url = rtrim($blog_category_url, BlogCategory::URL_EXT);
         $blog_category_url = ltrim($blog_category_url, '/');
 
         $result = $this->_blogCategoryCollectionFactory->create()
-            ->addFieldToFilter('identifier', ['like' => $blog_category_url])->load();
+            ->addFieldToFilter('keyword', ['like' => $blog_category_url])->load();
 
         if (count($result->getItems()) > 0) {
             $blogCategory = $result->getFirstItem();

@@ -117,18 +117,18 @@ class Product extends Resolver
                 return $special;
             },
             'manufacturerId' => function () use ($product) {
-                $manufacturerInfo = $this->model_store_manufacturer
-                    ->getManufacturerByOption($product->getData('manufacturer'));
-                return $manufacturerInfo->getData('shopbrand_id');
+                $manufacturerId = $this->model_store_manufacturer
+                    ->getManufacturerByProduct($product->getId());
+                return $manufacturerId;
             },
             'manufacturer' => function ($root, $args) use ($product, $that) {
-                $manufacturerInfo = $this->model_store_manufacturer
-                    ->getManufacturerByOption($product->getData('manufacturer'));
-                return $that->load->resolver('store/manufacturer/get', [
+                $manufacturerId = $that->model_store_manufacturer
+                    ->getManufacturerByProduct($product->getId());
+                return $manufacturerId != 0 ? $that->load->resolver('store/manufacturer/get', [
                     'parent' => $root,
                     'args' => $args,
-                    'id' => $manufacturerInfo->getData('shopbrand_id')
-                ]);
+                    'id' => $manufacturerId
+                ]) : null;
             },
             'model' => function () use ($product) {
                 return $product->getSku();

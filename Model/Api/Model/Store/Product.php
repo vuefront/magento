@@ -53,9 +53,12 @@ class Product extends Model
         }
 
         if (!empty($data['manufacturer_id'])) {
-            $this->load->model('store/manufacturer');
-            $manufacturer_info = $this->model_store_manufacturer->getManufacturer($data['manufacturer_id']);
-            $collection->addAttributeToFilter('manufacturer', ['eq' => $manufacturer_info->getData('option_id')]);
+            $collection->joinTable(
+                ['brand' => 'vuefront_brands_brand_product'],
+                'product_id=entity_id',
+                ['brand_id' => 'brand_id']
+            );
+            $collection->addAttributeToFilter('brand_id', $data['manufacturer_id']);
         }
 
         if (!empty($data['special'])) {

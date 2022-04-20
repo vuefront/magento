@@ -110,29 +110,29 @@ class InformationModel implements InformationInterface
 
         $extensions = [];
 
-        if ($this->moduleManager->isOutputEnabled('Magefan_Blog')) {
+        if ($this->moduleManager->isOutputEnabled('Vuefront_Blog')) {
             $extensions[] = [
-            'name' => 'Magefan Blog',
-            'version' => $this->moduleList->getOne('Magefan_Blog')['setup_version'],
-            'status' => $this->moduleManager->isEnabled('Magefan_Blog')
+            'name' => 'VueFront Blog',
+            'version' => $this->moduleList->getOne('Vuefront_Blog')['setup_version'],
+            'status' => $this->moduleManager->isEnabled('Vuefront_Blog')
             ];
         } else {
             $extensions[] = [
-            'name' => 'Magefan Blog',
+            'name' => 'VueFront Blog',
             'version' => '',
             "status" => false
             ];
         }
 
-        if ($this->moduleManager->isOutputEnabled('Magiccart_Shopbrand')) {
+        if ($this->moduleManager->isOutputEnabled('Vuefront_Brands')) {
             $extensions[] = [
-                'name' => 'Shop by Brand',
-                'version' => $this->moduleList->getOne('Magiccart_Shopbrand')['setup_version'],
-                'status' => $this->moduleManager->isEnabled('Magiccart_Shopbrand')
+                'name' => 'VueFront Brands',
+                'version' => $this->moduleList->getOne('Vuefront_Brands')['setup_version'],
+                'status' => $this->moduleManager->isEnabled('Vuefront_Brands')
             ];
         } else {
             $extensions[] = [
-            'name' => 'Shop by Brand',
+            'name' => 'VueFront Brands',
             'version' => '',
             "status" => false
             ];
