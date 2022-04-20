@@ -82,7 +82,8 @@ class Home extends Resolver
 
             $this->_driverFile->filePutContents(
                 $moduleDir . '/adminhtml/web/js/download.tar',
-                $this->_driverFile->fileGetContents("https://vuefront2019.s3.amazonaws.com/sites/".$args['number']."/vuefront-app.tar")
+                $this->_driverFile
+                ->fileGetContents("https://vuefront2019.s3.amazonaws.com/sites/".$args['number']."/vuefront-app.tar")
             );
             if (strpos($this->request->getServerValue("SERVER_SOFTWARE"), "Apache") !== false) {
                 $this->_file->rmdirRecursive($rootFolder . '/vuefront');
@@ -97,7 +98,7 @@ class Home extends Resolver
             $this->_file->rm($moduleDir . '/adminhtml/web/js/download.tar');
             return true;
         } catch (\Exception $e) {
-            echo $e->getMessage();
+            return false;
         }
         return false;
     }

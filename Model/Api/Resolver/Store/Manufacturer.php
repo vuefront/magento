@@ -27,10 +27,6 @@ class Manufacturer extends Resolver
         if ($this->brand) {
             $this->load->model('store/manufacturer');
 
-            // if ($args['id'] === null) {
-            //     return [];
-            // }
-
             /** @var $manufacturer \Vuefront\Brands\Model\Brand */
             if (!isset($args['manufacturer'])) {
                 $manufacturer = $this->model_store_manufacturer->getManufacturer((int)$args['id']);
@@ -91,7 +87,6 @@ class Manufacturer extends Resolver
             $manufacturer_total = $collection->getSize();
 
             $manufacturers = [];
-
 
             foreach ($collection->getItems() as $manufacturer) {
                 $manufacturers[] = $this->get(['manufacturer' => $manufacturer]);
