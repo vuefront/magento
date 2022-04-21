@@ -1,0 +1,22 @@
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+    <table name="vuefront_apps">
+        <column name="app_id" xsi:type="int" identity="true" nullable="false" comment="APP ID"/>
+        <column name="codename" xsi:type="varchar" length="255" nullable="true" comment="APP Codename"/>
+        <column name="jwt" xsi:type="text" nullable="true" comment="APP Jwt"/>
+        <column name="eventUrl" xsi:type="varchar" length="255" nullable="true" comment="Url for events"/>
+        <column name="authUrl" xsi:type="varchar" length="255" nullable="true" comment="Url for auth"/>
+        <column name="date_added" xsi:type="varchar" length="255" nullable="true" comment="App Date Added"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="app_id"/>
+        </constraint>
+     </table>
+    <table name="vuefront_settings">
+        <column name="setting_id" xsi:type="int" identity="true" nullable="false" comment="SETTING ID"/>
+        <column name="key" xsi:type="varchar" length="255" nullable="true" comment="SETTING key"/>
+        <column name="value" xsi:type="text" nullable="true" comment="SETTING value"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="setting_id"/>
+        </constraint>
+     </table>
+</schema>
