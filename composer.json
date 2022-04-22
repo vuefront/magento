@@ -6,8 +6,8 @@
   "canonical": false,
   "require": {
     "webonyx/graphql-php": ">=0.12.6",
-    "vuefront/module-blog" : ">=0.1.0",
-    "vuefront/module-brands": ">=0.1.0",
+    "vuefront/module-blog" : ">=0.1.2",
+    "vuefront/module-brands": ">=0.1.1",
     "ext-json": "*"
   },
   "license": [
